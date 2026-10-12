@@ -3095,7 +3095,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D04BA1232AFEEFE90D5CC827 /* debug.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = "";
 			};
 			name = Debug;
 		};

@@ -12,7 +12,7 @@ The app is named **Switcheroo** and uses the bundle ID `me.richardb.window-switc
 
 Chrome tabs are located by their native ID, even after moving between windows. Safari uses a window ID and position with title/URL validation; a changed tab requires refreshing. Browser data stays local. Safari's private-window and profile coverage depends on what its scripting interface exposes.
 
-Build with `xcodebuild -project alt-tab-macos.xcodeproj -scheme Debug -configuration Debug -derivedDataPath DerivedData CODE_SIGN_IDENTITY=-`. This creates an ad-hoc signed local test build. Test with `ai/test.sh` (add the same signing override to its xcodebuild command if no local signing identity is configured). Detailed behavior is in [BrowserTabsSpecs.md](src/browser-tabs/BrowserTabsSpecs.md).
+Build with `ai/build.sh`. Debug builds use Richard's Apple Development team so macOS can recognize the app across rebuilds and retain permission grants. Other developers can override `DEVELOPMENT_TEAM` in `config/local.xcconfig`. Install `DerivedData/Build/Products/Debug/Switcheroo.app` in `/Applications` before granting permissions. Use `ai/test.sh` to run tests. Detailed behavior is in [BrowserTabsSpecs.md](src/browser-tabs/BrowserTabsSpecs.md).
 
 The fork uses its own [update feed](browser-tabs-appcast.xml), which currently has no releases. Upstream AltTab updates cannot replace the browser-tab build through that feed. The original license and upstream information follow.
 
