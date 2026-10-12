@@ -2,6 +2,9 @@
 # Build phase script for the alt-tab-macos target. Wired from the "Copy Sparkle Helpers"
 # build phase via $(SRCROOT)/scripts/copy_sparkle_helpers.sh.
 #
+# The phase runs on every app build: Embed Frameworks can replace Sparkle while preserving
+# source timestamps, so timestamp-based helper outputs cannot detect an invalidated resource seal.
+#
 # Runs after Xcode's Embed Frameworks phase, before Xcode's final code-signing of AltTab.app:
 #   1. Copy Sparkle's prebuilt Updater.app + Autoupdate (already Developer ID-signed at
 #      vendor time by vendor/scripts/update_sparkle.sh) into Sparkle.framework/Versions/A/,

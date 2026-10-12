@@ -2194,6 +2194,7 @@
 /* Begin PBXShellScriptBuildPhase section */
 		5FDF9EB52FB358C100703843 /* Copy Sparkle Helpers */ = {
 			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
 			buildActionMask = 2147483647;
 			files = (
 			);
