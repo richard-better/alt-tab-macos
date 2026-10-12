@@ -68,7 +68,7 @@ class ControlsTab {
         "hideShowAppShortcut": NSLocalizedString("Hide/Show app", comment: ""),
     ]
     private static let removableShortcutPreferences = [
-        "holdShortcut", "nextWindowShortcut", "switcherTarget", "tabReleaseBehavior", "tabBrowserScope",
+        "holdShortcut", "nextWindowShortcut", "switcherTarget", "searchEnabled", "tabReleaseBehavior", "tabBrowserScope",
         "appsToShow", "spacesToShow", "screensToShow",
         "showMinimizedWindows", "showHiddenWindows", "showFullscreenWindows", "showWindowlessApps",
         "windowOrder", "shortcutStyle",
@@ -181,7 +181,7 @@ class ControlsTab {
             refreshShortcutUi()
         case "nextWindowGesture":
             refreshGestureRow()
-        case let k where k.hasPrefix("switcherTarget") || k.hasPrefix("tabReleaseBehavior") || k.hasPrefix("tabBrowserScope"):
+        case let k where k.hasPrefix("switcherTarget") || k.hasPrefix("searchEnabled") || k.hasPrefix("tabReleaseBehavior") || k.hasPrefix("tabBrowserScope"):
             if Preferences.nameToIndex(k) == selectedShortcutIndex { editor?.refreshFromCurrentBind() }
             refreshShortcutRows()
         case let k where isShortcutPreferenceKey(k):

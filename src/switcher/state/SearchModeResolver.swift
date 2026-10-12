@@ -49,8 +49,8 @@ enum SearchKeyDecision: Equatable {
 }
 
 enum SearchModeResolver {
-    static func startMode(startInSearch: Bool) -> SearchMode {
-        startInSearch ? .editing : .off
+    static func startMode(startInSearch: Bool, searchEnabled: Bool = true) -> SearchMode {
+        startInSearch && searchEnabled ? .editing : .off
     }
 
     /// Search shortcut: editing → turn off; off → enter editing. Gate applied by caller.

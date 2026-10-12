@@ -10,6 +10,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
     static func releaseShortcutModifiers() { activePanel?.modifiersReleased() }
     private var invocationIndex: Int?
     private var configurationIndex = 0
+    private var searchEnabled: Bool { Preferences.searchEnabled(configurationIndex) }
     private var releaseBehavior = TabReleaseBehaviorPreference.keepOpen
     private var browserScope = Set(TabBrowser.allCases)
     private var commitAfterCollection = false
@@ -124,7 +125,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
         Self.activePanel = self
         generation += 1
         let ticket = generation
-        header.isHidden = false
+        configureSearch()
         footer.isHidden = false
         automationButton.isHidden = true
         status.isHidden = true
@@ -136,7 +137,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
             guard let self, isVisible, generation == ticket else { return }
             search.stringValue = ""
             filterRows()
-            makeFirstResponder(search)
+            focusContent()
             refresh()
         }
     }
@@ -189,6 +190,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
     }
 
     func controlTextDidChange(_: Notification) {
+        guard searchEnabled else { return }
         filterRows()
     }
 
@@ -260,11 +262,11 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
         let width = min(TitlesStyle.panelWidth, (screen?.visibleFrame.width ?? 900) * 0.9)
         let extraHeight = (status.isHidden ? 0 : max(30, status.fittingSize.height))
         let height = TitlesStyle.panelHeight(rowsHeight: (style.rowHeight + 1) * CGFloat(max(1, snapshot.tabs.count)),
-            screenHeight: screen?.visibleFrame.height ?? 700, statusHeight: extraHeight)
+            screenHeight: screen?.visibleFrame.height ?? 700, statusHeight: extraHeight, showsSearch: searchEnabled)
         let oldCenter = NSPoint(x: frame.midX, y: frame.midY)
         scrollHeight.constant = max(
             style.rowHeight,
-            height - TitlesStyle.windowPadding * 2 - TitlesStyle.headerHeight - TitlesStyle.footerHeight -
+            height - TitlesStyle.windowPadding * 2 - (searchEnabled ? TitlesStyle.headerHeight : 0) - TitlesStyle.footerHeight -
                 extraHeight
         )
         setContentSize(NSSize(width: width, height: height))
@@ -386,7 +388,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
             case .failure:
                 commitAfterCollection = false
                 status.isHidden = false
-                header.isHidden = false
+                header.isHidden = !searchEnabled
                 footer.isHidden = false
                 automationButton.isHidden = false
                 status.stringValue = NSLocalizedString(
@@ -401,12 +403,22 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
     private func restoreFocusAfterOperation() {
         guard isVisible, !isKeyWindow else { return }
         makeKeyAndOrderFront(nil)
-        makeFirstResponder(search)
+        focusContent()
     }
+
+    private func configureSearch() {
+        header.isHidden = !searchEnabled
+        search.isEditable = searchEnabled
+        search.isSelectable = searchEnabled
+        refreshButton.removeFromSuperview()
+        if searchEnabled { header.addArrangedSubview(refreshButton) } else { footer.insertArrangedSubview(refreshButton, at: 0) }
+    }
+
+    private func focusContent() { makeFirstResponder(searchEnabled ? search : table) }
 
     private func filterRows() {
         let selected = !initialSelectionNeeded && rows.indices.contains(table.selectedRow) ? rows[table.selectedRow].identity : nil
-        rows = snapshot.tabs.filter { $0.matches(search.stringValue) }
+        rows = snapshot.tabs.filter { $0.matches(searchEnabled ? search.stringValue : "") }
         updatePanelSize()
         table.reloadData()
         if !rows.isEmpty {
@@ -422,7 +434,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
             status.isHidden = false
             footer.isHidden = false
             automationButton.isHidden = false
-            header.isHidden = false
+            header.isHidden = !searchEnabled
             status.stringValue = snapshot.issues.map(\.message).joined(separator: "\n")
         } else if snapshot.tabs.isEmpty {
             status.isHidden = false

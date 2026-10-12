@@ -415,7 +415,7 @@ class App: AppCenterApplication {
             // in its final state. No-op on first summon (panel was orderOut'd with alpha=0).
             TilesPanel.shared.alphaValue = 0
             ProTransitionManager.shared.onSwitcherShown()
-            let shouldStartInSearchMode = Preferences.effectiveShortcutStyle(shortcutIndex) == .searchOnRelease
+            let shouldStartInSearchMode = Preferences.searchEnabled(shortcutIndex) && Preferences.effectiveShortcutStyle(shortcutIndex) == .searchOnRelease
             TilesView.startSearchSession(shouldStartInSearchMode)
             if shouldStartInSearchMode {
                 session.forceDoNothingOnRelease = true

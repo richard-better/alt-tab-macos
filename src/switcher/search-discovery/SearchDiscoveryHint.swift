@@ -195,6 +195,7 @@ final class SearchDiscoveryHint {
     }
 
     private func usableShortcut() -> Shortcut? {
+        guard Preferences.searchEnabled(SwitcherSession.activeShortcutIndex) else { return nil }
         guard let shortcut = ControlsTab.shortcuts["searchShortcut"]?.shortcut,
               shortcut.keyCode != .none || !shortcut.modifierFlags.isEmpty else { return nil }
         let index = SwitcherSession.activeShortcutIndex

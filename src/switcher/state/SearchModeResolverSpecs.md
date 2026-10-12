@@ -23,6 +23,8 @@ the Edit menu, call `App.cycleSelection`).
 
 ## Behavior & edge cases
 
+- Each shortcut's Search toggle defaults to enabled. When disabled, the window panel does not enter editing, including for a shortcut configured to start in search. Search shortcuts, clicks, and discovery hints cannot enable it. A Search-on-release shortcut stays open for selection without a search field until Return or Escape.
+
 - **Escape is contextual** (the headline interaction): if search was *toggled mid-session*, Escape
   exits search back to the normal switcher (a second Escape then closes it). If the session *started
   in search*, Escape closes the whole switcher immediately — there's no "normal switcher" to fall back to.

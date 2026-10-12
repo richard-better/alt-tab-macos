@@ -20,7 +20,8 @@ class TilesView {
     static var searchField: NSTextField { usesLauncherStyle ? launcherSearchField : nativeSearchField }
     private static let launcherFooter = LauncherFooterView()
     private static var usesLauncherStyle: Bool { Preferences.effectiveAppearanceStyle(SwitcherSession.activeShortcutIndex) == .titles }
-    private static var showsSearchHeader: Bool { usesLauncherStyle || searchMode != .off }
+    private static var searchEnabled: Bool { Preferences.searchEnabled(SwitcherSession.activeShortcutIndex) }
+    private static var showsSearchHeader: Bool { searchEnabled && (usesLauncherStyle || searchMode != .off) }
     static var noWindowLabel = NSTextField(labelWithString: NSLocalizedString("No Window", comment: ""))
     private(set) static var searchMode: SearchMode = .off
     static var rows = [[TileView]]()
@@ -54,7 +55,7 @@ class TilesView {
     static func startSearchSession(_ startInSearchMode: Bool) {
         searchField.stringValue = ""
         Windows.updateSearchQuery("")
-        searchMode = SearchModeResolver.startMode(startInSearch: startInSearchMode)
+        searchMode = SearchModeResolver.startMode(startInSearch: startInSearchMode, searchEnabled: searchEnabled)
         updateSearchFieldEditability()
     }
 
@@ -104,6 +105,7 @@ class TilesView {
 
     static func enableSearchEditing() {
         MainThreadStall.step()
+        guard searchEnabled else { return }
         switch SearchModeResolver.enableEditing(mode: searchMode, canSearch: ProFeature.searchInSwitcher.attemptUse()) {
             case .placeCaretOnly:
                 giveTheFieldTheCaret()
@@ -219,6 +221,7 @@ class TilesView {
     }
 
     private static func updateSearchQuery(_ query: String) {
+        guard searchEnabled else { return }
         if (SwitcherSession.current?.searchQuery ?? "") == query { return }
         if !query.isEmpty { UsageStats.recordSearchIfFirst() }
         clearHover()
@@ -663,8 +666,9 @@ class TilesView {
 
     private static func layoutLauncherParentViews(_ widthMax: CGFloat, _ maxY: CGFloat) {
         let width = min(widthMax, TitlesStyle.panelWidth - Appearance.windowPadding * 2)
-        let height = TitlesStyle.panelHeight(rowsHeight: maxY, screenHeight: NSScreen.preferred.visibleFrame.height)
-        let contentHeight = max(0, height - Appearance.windowPadding * 2 - TitlesStyle.listTop - TitlesStyle.footerHeight)
+        let headerHeight = showsSearchHeader ? TitlesStyle.headerHeight : 0
+        let height = TitlesStyle.panelHeight(rowsHeight: maxY, screenHeight: NSScreen.preferred.visibleFrame.height, showsSearch: showsSearchHeader)
+        let contentHeight = max(0, height - Appearance.windowPadding * 2 - headerHeight - TitlesStyle.footerHeight)
         thumbnailsWidth = width
         thumbnailsHeight = contentHeight
         contentView.frame.size = NSSize(width: width + Appearance.windowPadding * 2, height: height)
@@ -676,8 +680,11 @@ class TilesView {
         }
         nativeSearchField.removeFromSuperview()
         launcherSearchField.applyLauncherStyle(placeholder: NSLocalizedString("Search windows…", comment: ""))
-        searchIcon.frame = NSRect(x: 16, y: height - TitlesStyle.headerHeight + 22, width: 22, height: 22)
-        searchField.frame = NSRect(x: 50, y: height - TitlesStyle.headerHeight + 10, width: width - 50, height: 44)
+        searchIcon.isHidden = !showsSearchHeader
+        searchField.isHidden = !showsSearchHeader
+        let searchCenterY = height - Appearance.windowPadding - TitlesStyle.headerHeight / 2
+        searchIcon.frame = NSRect(x: 16, y: searchCenterY - 11, width: 22, height: 22)
+        searchField.frame = NSRect(x: 50, y: searchCenterY - 22, width: width - 50, height: 44)
         launcherFooter.frame = NSRect(x: Appearance.windowPadding, y: Appearance.windowPadding, width: width, height: TitlesStyle.footerHeight)
         launcherFooter.button.isEnabled = maxY > 0
         scrollView.frame = NSRect(x: Appearance.windowPadding, y: TitlesStyle.footerHeight + Appearance.windowPadding, width: width, height: contentHeight)

@@ -55,6 +55,7 @@ class Preferences {
         }
         (0...maxShortcutCount).forEach { index in
             values[indexToName("switcherTarget", index)] = SwitcherTargetPreference.windows.indexAsString
+            values[indexToName("searchEnabled", index)] = "true"
             values[indexToName("tabReleaseBehavior", index)] = TabReleaseBehaviorPreference.keepOpen.indexAsString
             values[indexToName("tabBrowserScope", index)] = TabBrowserScopePreference.all.indexAsString
             values[indexToName("appsToShow", index)] = index == 1 ? AppsToShowPreference.active.indexAsString : (index == 2 ? AppsToShowPreference.nonActive.indexAsString : AppsToShowPreference.all.indexAsString)
@@ -337,6 +338,8 @@ class Preferences {
     static func switcherTarget(_ index: Int) -> SwitcherTargetPreference {
         CachedUserDefaults.macroPref(indexToName("switcherTarget", index), SwitcherTargetPreference.allCases)
     }
+
+    static func searchEnabled(_ index: Int) -> Bool { CachedUserDefaults.bool(indexToName("searchEnabled", index)) }
 
     static func tabReleaseBehavior(_ index: Int) -> TabReleaseBehaviorPreference {
         CachedUserDefaults.macroPref(indexToName("tabReleaseBehavior", index), TabReleaseBehaviorPreference.allCases)

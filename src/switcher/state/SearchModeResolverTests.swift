@@ -20,6 +20,10 @@ final class SearchModeResolverTests: XCTestCase {
         XCTAssertEqual(SearchModeResolver.startMode(startInSearch: false), .off)
     }
 
+    func testDisabledSearchCannotStartEditingForASearchShortcut() {
+        XCTAssertEqual(SearchModeResolver.startMode(startInSearch: true, searchEnabled: false), .off)
+    }
+
     // MARK: - B. Toggle route (the search shortcut)
 
     func testToggleFromOffEntersEditing() {

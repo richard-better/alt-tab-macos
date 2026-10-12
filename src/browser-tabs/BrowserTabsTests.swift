@@ -307,6 +307,47 @@ final class BrowserTabsTests: XCTestCase {
         }
     }
 
+    func testDisabledSearchRemovesTheHeaderButKeepsKeyboardNavigationAndRefresh() throws {
+        _ = NSApplication.shared
+        Preferences.disabledSearchShortcuts.insert(2)
+        let collector = DeferredBrowserTabsCollector()
+        let started = expectation(description: "collection started")
+        collector.onCollect = { started.fulfill() }
+        let panel = BrowserTabsPanel(collector: collector)
+        defer { panel.dismiss(); Preferences.disabledSearchShortcuts.remove(2) }
+        panel.present(shortcutIndex: 2)
+        wait(for: [started], timeout: 1)
+        collector.completion?(.success(BrowserTabsSnapshot(tabs: sampleTabs(), issues: [])))
+        let search = try XCTUnwrap(findSearchField(panel.contentView!))
+        XCTAssertTrue(search.superview!.isHidden)
+        XCTAssertFalse(search.isEditable)
+        XCTAssertFalse(panel.firstResponder === search.currentEditor())
+        search.stringValue = "missing"
+        panel.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: search))
+        XCTAssertEqual(panel.numberOfRows(in: NSTableView()), 3)
+        let refresh = try XCTUnwrap(findButton(panel.contentView!, title: "Refresh"))
+        XCTAssertFalse(refresh.superview!.isHidden)
+        let arrow = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+            windowNumber: panel.windowNumber, context: nil, characters: "", charactersIgnoringModifiers: "", isARepeat: false, keyCode: UInt16(kVK_DownArrow)))
+        let enter = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [], timestamp: 0,
+            windowNumber: panel.windowNumber, context: nil, characters: "\r", charactersIgnoringModifiers: "\r", isARepeat: false, keyCode: UInt16(kVK_Return)))
+        XCTAssertNil(panel.handle(arrow))
+        XCTAssertNil(panel.handle(enter))
+        XCTAssertEqual(collector.activatedTabs.map { $0.tabId }, ["tab-1"])
+    }
+
+    func testDisabledSearchReclaimsItsHeightWithoutChangingTheScreenLimit() {
+        let withSearch = TitlesStyle.panelHeight(rowsHeight: 200, screenHeight: 900)
+        let withoutSearch = TitlesStyle.panelHeight(rowsHeight: 200, screenHeight: 900, showsSearch: false)
+        XCTAssertEqual(withSearch - withoutSearch, TitlesStyle.headerHeight)
+        XCTAssertEqual(TitlesStyle.panelHeight(rowsHeight: 2000, screenHeight: 900, showsSearch: false), 876)
+    }
+
+    private func findButton(_ view: NSView, title: String) -> NSButton? {
+        if let button = view as? NSButton, button.title == title { return button }
+        return view.subviews.lazy.compactMap { self.findButton($0, title: title) }.first
+    }
+
     private func findSearchField(_ view: NSView) -> LauncherSearchField? {
         if let search = view as? LauncherSearchField {
             return search

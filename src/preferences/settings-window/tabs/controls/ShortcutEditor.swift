@@ -17,6 +17,7 @@ final class ShortcutEditor {
 
     private let trigger: TriggerBinding
     private let targetSelector: ShortcutBoundDropdown
+    private let searchToggle: Switch
     private var browserPane: BrowserTabsShortcutPane?
     /// Panes are constructed lazily on first selection — only one is visible at a time, so
     /// building the other two upfront is pure cost (~30 controls each in the cascade walk).
@@ -61,6 +62,7 @@ final class ShortcutEditor {
         editorWidth = width
         trigger = TriggerBinding()
         targetSelector = ShortcutBoundDropdown(baseName: "switcherTarget", cases: SwitcherTargetPreference.allCases)
+        searchToggle = LabelAndControl.makeSwitch("searchEnabled")
 
         // Populate the active SettingsSearchIndex with every pane's static strings — this is the
         // section-level search registration that lets queries match content in panes that haven't
@@ -75,6 +77,7 @@ final class ShortcutEditor {
             leftTitle: ShortcutEditor.triggerLabel,
             rightViews: [trigger.view]))
         triggerTable.addRow(leftText: NSLocalizedString("Switch between", comment: ""), rightViews: [targetSelector])
+        triggerTable.addRow(leftText: NSLocalizedString("Search", comment: ""), rightViews: [searchToggle])
         SettingsSearchIndex.registerStrings(BrowserTabsShortcutPane.searchableStrings + SwitcherTargetPreference.allCases.map { $0.localizedString })
 
         let labels = [
@@ -135,6 +138,8 @@ final class ShortcutEditor {
         currentIndex = index
         trigger.bind(toShortcut: index)
         targetSelector.bind(toShortcut: index)
+        searchToggle.identifier = NSUserInterfaceItemIdentifier(Preferences.indexToName("searchEnabled", index))
+        searchToggle.setSilently(Preferences.searchEnabled(index) ? .on : .off)
         browserPane?.bind(toShortcut: index)
         filteringPane?.bind(toShortcut: index)
         appearancePane?.bind(toShortcut: index)

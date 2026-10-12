@@ -250,6 +250,8 @@ class Logger {
 }
 
 class Preferences {
+    static var disabledSearchShortcuts = Set<Int>()
+    static func searchEnabled(_ index: Int) -> Bool { !disabledSearchShortcuts.contains(index) }
     static var targets = [Int: SwitcherTargetPreference]()
     static var tabBehaviors = [Int: TabReleaseBehaviorPreference]()
     static var tabScopes = [Int: TabBrowserScopePreference]()
