@@ -1,5 +1,7 @@
 # Browser tabs
 
+The Switch action is hidden for shortcuts that switch on modifier release. An empty footer is removed so the list uses its space. Refresh and Automation controls remain available when needed. Keep-open shortcuts and menu invocation retain the Switch action. The window panel follows the same rule while modifier release is active; entering search keeps the panel open and restores its action.
+
 Each shortcut has a Search toggle below Switch between. Search defaults to enabled for both targets. Disabling it hides the search header, stops filtering, and reclaims the header's height. Tab and arrow navigation, Return, Escape, modifier release, and switching still work. The browser Refresh button moves to the footer when search is disabled; Command-R remains available. Both launcher panels center the search field in the same 56-point header, with a 6-point gap between the field and the first row.
 
 Browser tabs are a target in Settings > Controls > each shortcut's Switch between selector. Choosing Windows shows its filtering, appearance, and ordering options. Choosing Browser tabs shows browser scope (Safari and Chrome, Safari, or Chrome), release behavior, size, and theme. Switching targets preserves each target's stored options. The existing Control-Option-Tab shortcut is migrated into a browser-tab shortcut slot without changing window bindings. An installation with all nine slots in use retains its legacy binding in Additional controls until a slot is available.

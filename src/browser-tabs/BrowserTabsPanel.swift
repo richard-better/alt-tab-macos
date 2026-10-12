@@ -258,15 +258,18 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
     }
 
     private func updatePanelSize() {
+        launcherFooter.isHidden = releaseBehavior == .switchOnRelease
+        footer.isHidden = launcherFooter.isHidden && automationButton.isHidden && searchEnabled
+        let footerHeight = footer.isHidden ? 0 : TitlesStyle.footerHeight
         let screen = screen ?? NSScreen.main
         let width = min(TitlesStyle.panelWidth, (screen?.visibleFrame.width ?? 900) * 0.9)
         let extraHeight = (status.isHidden ? 0 : max(30, status.fittingSize.height))
         let height = TitlesStyle.panelHeight(rowsHeight: (style.rowHeight + 1) * CGFloat(max(1, snapshot.tabs.count)),
-            screenHeight: screen?.visibleFrame.height ?? 700, statusHeight: extraHeight, showsSearch: searchEnabled)
+            screenHeight: screen?.visibleFrame.height ?? 700, statusHeight: extraHeight, showsSearch: searchEnabled, showsFooter: !footer.isHidden)
         let oldCenter = NSPoint(x: frame.midX, y: frame.midY)
         scrollHeight.constant = max(
             style.rowHeight,
-            height - TitlesStyle.windowPadding * 2 - (searchEnabled ? TitlesStyle.headerHeight : 0) - TitlesStyle.footerHeight -
+            height - TitlesStyle.windowPadding * 2 - (searchEnabled ? TitlesStyle.headerHeight : 0) - footerHeight -
                 extraHeight
         )
         setContentSize(NSSize(width: width, height: height))
@@ -395,6 +398,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
                     "Browser tabs could not be read. Check Automation permissions and try Refresh.",
                     comment: ""
                 )
+                updatePanelSize()
             }
             restoreFocusAfterOperation()
         }

@@ -298,6 +298,46 @@ final class BrowserTabsTests: XCTestCase {
         XCTAssertTrue(panel.isVisible)
         XCTAssertTrue(collector.activatedTabs.isEmpty)
         XCTAssertNil(BrowserTabsPanel.activeShortcutIndex)
+        XCTAssertFalse(findButton(panel.contentView!, title: "Switch  ↵")!.superview!.isHidden)
+    }
+
+    func testSwitchOnReleaseHidesTheActionAndReclaimsTheFooter() throws {
+        _ = NSApplication.shared
+        Preferences.tabBehaviors[2] = .switchOnRelease
+        let collector = DeferredBrowserTabsCollector()
+        let started = expectation(description: "collection started")
+        collector.onCollect = { started.fulfill() }
+        let panel = BrowserTabsPanel(collector: collector)
+        defer { panel.dismiss(); Preferences.tabBehaviors.removeValue(forKey: 2) }
+        panel.present(shortcutIndex: 2)
+        wait(for: [started], timeout: 1)
+        collector.completion?(.success(BrowserTabsSnapshot(tabs: sampleTabs(), issues: [])))
+        let button = try XCTUnwrap(findButton(panel.contentView!, title: "Switch  ↵"))
+        XCTAssertTrue(button.superview!.isHidden)
+        XCTAssertTrue(button.superview!.superview!.isHidden)
+        let compactHeight = panel.frame.height
+        Preferences.tabBehaviors[2] = .keepOpen
+        panel.dismiss()
+        panel.present(shortcutIndex: 2)
+        XCTAssertFalse(button.superview!.isHidden)
+        XCTAssertEqual(panel.frame.height - compactHeight, TitlesStyle.footerHeight)
+    }
+
+    func testSwitchOnReleaseKeepsRefreshVisibleWithoutSearch() throws {
+        _ = NSApplication.shared
+        Preferences.tabBehaviors[2] = .switchOnRelease
+        Preferences.disabledSearchShortcuts.insert(2)
+        let collector = DeferredBrowserTabsCollector()
+        let started = expectation(description: "collection started")
+        collector.onCollect = { started.fulfill() }
+        let panel = BrowserTabsPanel(collector: collector)
+        defer { panel.dismiss(); Preferences.tabBehaviors.removeValue(forKey: 2); Preferences.disabledSearchShortcuts.remove(2) }
+        panel.present(shortcutIndex: 2)
+        wait(for: [started], timeout: 1)
+        collector.completion?(.success(BrowserTabsSnapshot(tabs: sampleTabs(), issues: [])))
+        XCTAssertTrue(findButton(panel.contentView!, title: "Switch  ↵")!.superview!.isHidden)
+        let refresh = try XCTUnwrap(findButton(panel.contentView!, title: "Refresh"))
+        XCTAssertFalse(refresh.superview!.isHidden)
     }
 
     private func sampleTabs() -> [BrowserTab] {

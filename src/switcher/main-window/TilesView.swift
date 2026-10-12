@@ -667,8 +667,10 @@ class TilesView {
     private static func layoutLauncherParentViews(_ widthMax: CGFloat, _ maxY: CGFloat) {
         let width = min(widthMax, TitlesStyle.panelWidth - Appearance.windowPadding * 2)
         let headerHeight = showsSearchHeader ? TitlesStyle.headerHeight : 0
-        let height = TitlesStyle.panelHeight(rowsHeight: maxY, screenHeight: NSScreen.preferred.visibleFrame.height, showsSearch: showsSearchHeader)
-        let contentHeight = max(0, height - Appearance.windowPadding * 2 - headerHeight - TitlesStyle.footerHeight)
+        let showsSwitch = Preferences.effectiveShortcutStyle(SwitcherSession.activeShortcutIndex) != .focusOnRelease || SwitcherSession.current?.forceDoNothingOnRelease == true
+        let footerHeight = showsSwitch ? TitlesStyle.footerHeight : 0
+        let height = TitlesStyle.panelHeight(rowsHeight: maxY, screenHeight: NSScreen.preferred.visibleFrame.height, showsSearch: showsSearchHeader, showsFooter: showsSwitch)
+        let contentHeight = max(0, height - Appearance.windowPadding * 2 - headerHeight - footerHeight)
         thumbnailsWidth = width
         thumbnailsHeight = contentHeight
         contentView.frame.size = NSSize(width: width + Appearance.windowPadding * 2, height: height)
@@ -686,8 +688,9 @@ class TilesView {
         searchIcon.frame = NSRect(x: 16, y: searchCenterY - 11, width: 22, height: 22)
         searchField.frame = NSRect(x: 50, y: searchCenterY - 22, width: width - 50, height: 44)
         launcherFooter.frame = NSRect(x: Appearance.windowPadding, y: Appearance.windowPadding, width: width, height: TitlesStyle.footerHeight)
+        launcherFooter.isHidden = !showsSwitch
         launcherFooter.button.isEnabled = maxY > 0
-        scrollView.frame = NSRect(x: Appearance.windowPadding, y: TitlesStyle.footerHeight + Appearance.windowPadding, width: width, height: contentHeight)
+        scrollView.frame = NSRect(x: Appearance.windowPadding, y: footerHeight + Appearance.windowPadding, width: width, height: contentHeight)
         scrollView.contentView.frame.size = scrollView.frame.size
         scrollView.documentView!.frame.size = NSSize(width: width, height: maxY)
         thumbnailOverView.frame = scrollView.documentView!.bounds
