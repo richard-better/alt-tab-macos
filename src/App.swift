@@ -383,6 +383,7 @@ class App: AppCenterApplication {
     }
 
     static func showUiOrCycleSelection(_ shortcutIndex: Int, _ forceDoNothingOnRelease_: Bool) {
+        BrowserTabsPanel.instance?.dismiss()
         MainThreadStall.step()
         OnboardingPopover.switcherWasSummoned()
         let session = SwitcherSession.current ?? {

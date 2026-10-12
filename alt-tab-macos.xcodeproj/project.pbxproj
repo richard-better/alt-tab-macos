@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A141BC057A134398AFF84C02 /* BrowserTabsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A141BC057A134398AFF84C01 /* BrowserTabsPanel.swift */; };
 		64C0D8955FD1508FA65EEC21 /* BrowserTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F4F5EA24D6F53C281DD935D /* BrowserTabs.swift */; };
 		4A15941697C15A718733B4E7 /* BrowserTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F4F5EA24D6F53C281DD935D /* BrowserTabs.swift */; };
 		CDA57FE2D1775D0E993AE00E /* BrowserTabsScripts.swift in Sources */ = {isa = PBXBuildFile; fileRef = 55BAFB02536F58DDA0593110 /* BrowserTabsScripts.swift */; };
@@ -498,6 +499,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A141BC057A134398AFF84C01 /* BrowserTabsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserTabsPanel.swift; sourceTree = "<group>"; };
 		6F4F5EA24D6F53C281DD935D /* BrowserTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserTabs.swift; sourceTree = "<group>"; };
 		55BAFB02536F58DDA0593110 /* BrowserTabsScripts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserTabsScripts.swift; sourceTree = "<group>"; };
 		06946FFB8D8153A1B82D63D6 /* BrowserTabsCollector.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserTabsCollector.swift; sourceTree = "<group>"; };
@@ -988,6 +990,7 @@
 		1330861288495126997F04DB /* browser-tabs */ = {
 			isa = PBXGroup;
 			children = (
+				A141BC057A134398AFF84C01 /* BrowserTabsPanel.swift */,
 				6F4F5EA24D6F53C281DD935D /* BrowserTabs.swift */,
 				55BAFB02536F58DDA0593110 /* BrowserTabsScripts.swift */,
 				06946FFB8D8153A1B82D63D6 /* BrowserTabsCollector.swift */,
@@ -2374,6 +2377,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A141BC057A134398AFF84C02 /* BrowserTabsPanel.swift in Sources */,
 				64C0D8955FD1508FA65EEC21 /* BrowserTabs.swift in Sources */,
 				CDA57FE2D1775D0E993AE00E /* BrowserTabsScripts.swift in Sources */,
 				3A01A3F93C135462BE346281 /* BrowserTabsCollector.swift in Sources */,

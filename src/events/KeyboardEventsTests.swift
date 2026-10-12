@@ -1,6 +1,21 @@
 import XCTest
+import ShortcutRecorder
 
 final class KeyboardEventsUtilsTests: XCTestCase {
+    func testBrowserShortcutHasIndependentModifiers() throws {
+        let chord = try XCTUnwrap(Shortcut(keyEquivalent: "⌃B"))
+        let browser = ATShortcut(chord, "browserTabsShortcut", .global, .down)
+        XCTAssertTrue(browser.matches(nil, nil, chord.carbonKeyCode, [.control]))
+        XCTAssertFalse(browser.matches(nil, nil, chord.carbonKeyCode, [.control, .option]))
+        XCTAssertFalse(browser.matches(nil, nil, chord.carbonKeyCode, [.option]))
+    }
+
+    func testBrowserShortcutGlobalIDDoesNotCollideWithWindowShortcuts() {
+        let ids = KeyboardEventsTestable.globalShortcutsIds
+        XCTAssertNotNil(ids["browserTabsShortcut"])
+        XCTAssertEqual(Set(ids.values).count, ids.count)
+    }
+
     // alt-down > tab-down > tab-up > alt-up
     func testMostCommonSequence() throws {
         resetState()

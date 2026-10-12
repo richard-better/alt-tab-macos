@@ -49,13 +49,14 @@ class ControlsTab {
     static var shortcutEditorContentWidth: CGFloat { shortcutEditorWidth - shortcutEditorRightPadding }
     private static let gestureSelectionIndex = -1
     private static let staticManagedShortcutPreferences = [
-        "focusWindowShortcut", "previousWindowShortcut", "cancelShortcut", "searchShortcut",
+        "focusWindowShortcut", "previousWindowShortcut", "cancelShortcut", "searchShortcut", "browserTabsShortcut",
         "closeWindowShortcut", "minDeminWindowShortcut", "toggleFullscreenWindowShortcut", "quitAppShortcut", "hideShowAppShortcut",
     ]
     /// Canonical id → localized label for the always-active ("when active") shortcuts. Single source
     /// of truth: `ShortcutsWhenActiveSheet` reads its row titles from here, and `conflictLabel(_:)`
     /// uses it to name a conflicting shortcut without needing its (possibly-unbuilt) sheet control.
     static let staticShortcutLabels = [
+        "browserTabsShortcut": NSLocalizedString("Show browser tabs", comment: ""),
         "focusWindowShortcut": NSLocalizedString("Focus selected window", comment: ""),
         "previousWindowShortcut": NSLocalizedString("Select previous window", comment: ""),
         "cancelShortcut": NSLocalizedString("Cancel", comment: ""),
@@ -773,7 +774,7 @@ class ControlsTab {
                 restrictModifiersOfHoldShortcut(controlId, [])
                 (sender as! CustomRecorderControl).objectValue = nil
             } else {
-                addShortcut(.down, controlId.hasPrefix("nextWindowShortcut") ? .global : .local, newShortcut!, controlId, nil)
+                addShortcut(.down, isGlobalShortcut(controlId) ? .global : .local, newShortcut!, controlId, nil)
                 restrictModifiersOfHoldShortcut(controlId, [(sender as! CustomRecorderControl).objectValue!.modifierFlags])
             }
         }
@@ -945,7 +946,7 @@ class ControlsTab {
             restrictModifiersOfHoldShortcut(controlId, [])
             return
         }
-        addShortcut(.down, controlId.hasPrefix("nextWindowShortcut") ? .global : .local, shortcut, controlId, nil)
+        addShortcut(.down, isGlobalShortcut(controlId) ? .global : .local, shortcut, controlId, nil)
         restrictModifiersOfHoldShortcut(controlId, [shortcut.modifierFlags])
     }
 
@@ -956,6 +957,10 @@ class ControlsTab {
             return
         }
         addShortcut(.up, .global, shortcut, controlId, i)
+    }
+
+    private static func isGlobalShortcut(_ controlId: String) -> Bool {
+        controlId.hasPrefix("nextWindowShortcut") || controlId == "browserTabsShortcut"
     }
 
     private static func combinedShortcut(_ controlId: String) -> Shortcut? {

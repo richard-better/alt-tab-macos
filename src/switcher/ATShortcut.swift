@@ -41,6 +41,9 @@ class ATShortcut {
     }
 
     private func modifiersMatch(_ modifiers: CarbonModifierFlags) -> Bool {
+        if id == "browserTabsShortcut" {
+            return modifiers.cleaned() == shortcut.carbonModifierFlags.cleaned()
+        }
         let session = SwitcherSession.current
         let holdModifiersCleaned = ControlsTab.shortcuts[Preferences.indexToName("holdShortcut", session?.shortcutIndex ?? 0)]?.shortcut.carbonModifierFlags.cleaned() ?? 0
         let shortcutModifiersCleaned = shortcut.carbonModifierFlags.cleaned()

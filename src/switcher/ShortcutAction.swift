@@ -7,6 +7,7 @@ struct ShortcutAction {
 
 enum ShortcutActions {
     static let all: [ShortcutAction] = [
+        ShortcutAction(id: "browserTabsShortcut", perform: { BrowserTabsPanel.show() }),
         ShortcutAction(id: "focusWindowShortcut", perform: { App.focusTarget() }),
         ShortcutAction(id: "previousWindowShortcut", perform: { App.previousWindowShortcutWithRepeatingKey() }),
         ShortcutAction(id: "→", perform: { App.cycleSelection(.right) }),

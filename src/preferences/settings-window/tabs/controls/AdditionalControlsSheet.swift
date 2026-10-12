@@ -4,6 +4,7 @@ class AdditionalControlsSheet: SheetWindow {
     // Localized labels live here once. `searchableStrings` and `makeContentView` both reference
     // these constants so changing a string takes one edit, and search can't silently miss a row
     // because of a typo divergence between the two paths.
+    private static let labelBrowserTabs = ControlsTab.staticShortcutLabels["browserTabsShortcut"]!
     private static let title = NSLocalizedString("Additional controls", comment: "")
     private static let titleMiscellaneous = NSLocalizedString("Miscellaneous", comment: "")
     private static let labelArrows = NSLocalizedString("Select windows using arrow keys", comment: "")
@@ -14,12 +15,14 @@ class AdditionalControlsSheet: SheetWindow {
 
     /// Pre-build search index for the open-button. See `SettingsSearchIndex.sheetSearchableStrings`.
     static let searchableStrings: [String] = [
-        title, titleMiscellaneous,
+        title, titleMiscellaneous, labelBrowserTabs,
         labelArrows, labelVim, labelMouse,
         labelCursorFollow, labelTrackpad,
     ] + CursorFollowFocus.allCases.map { $0.localizedString }
 
     override func makeContentView() -> NSView {
+        let browserTabs = TableGroupView.Row(leftTitle: Self.labelBrowserTabs,
+            rightViews: [LabelAndControl.makeLabelWithRecorder(Self.labelBrowserTabs, "browserTabsShortcut", Preferences.shortcut("browserTabsShortcut"), labelPosition: .right)[0]])
         let enableArrows = TableGroupView.Row(leftTitle: Self.labelArrows,
             rightViews: [LabelAndControl.makeSwitch("arrowKeysEnabled", extraAction: ControlsTab.arrowKeysEnabledCallback)])
         let enableVimKeys = TableGroupView.Row(leftTitle: Self.labelVim,
@@ -35,6 +38,7 @@ class AdditionalControlsSheet: SheetWindow {
         ControlsTab.arrowKeysEnabledCallback(ControlsTab.arrowKeysCheckbox)
         ControlsTab.vimKeysEnabledCallback(ControlsTab.vimKeysCheckbox)
         let table1 = TableGroupView(title: Self.title, width: SheetWindow.width)
+        _ = table1.addRow(browserTabs)
         _ = table1.addRow(enableArrows)
         _ = table1.addRow(enableVimKeys)
         _ = table1.addRow(enableMouse)
