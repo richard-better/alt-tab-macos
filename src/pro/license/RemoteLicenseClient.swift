@@ -59,24 +59,6 @@ struct RemoteLicenseClient: LicenseAPI {
         }
     }
 
-    func validate(_ licenseKey: String, instanceId: String, completion: @escaping (Result<ValidateResult, Error>) -> Void) {
-        let body: [String: Any] = [
-            "license_key": licenseKey,
-            "instance_id": instanceId,
-        ]
-        Logger.debug { "alt-tab-backend POST \(baseUrl)/validate" }
-        post("validate", body: body) { (result: Result<ValidateResponse, Error>) in
-            switch result {
-            case .success(let response):
-                Logger.debug { "alt-tab-backend validate \(response.valid ? "OK" : "KO"): valid=\(response.valid), variant_id=\(response.variant_id ?? "nil")" }
-                completion(.success(ValidateResult(valid: response.valid, variantId: response.variant_id)))
-            case .failure(let error):
-                Logger.debug { "alt-tab-backend validate KO: \(error)" }
-                completion(.failure(error))
-            }
-        }
-    }
-
     func deactivate(_ licenseKey: String, instanceId: String, completion: @escaping (Result<Void, Error>) -> Void) {
         let body: [String: Any] = [
             "license_key": licenseKey,
@@ -136,11 +118,6 @@ struct RemoteLicenseClient: LicenseAPI {
         let customer_email: String?
         let error: String?
         let instances: [InstanceDTO]?
-    }
-
-    private struct ValidateResponse: Decodable {
-        let valid: Bool
-        let variant_id: String?
     }
 
     private struct DeactivateResponse: Decodable {

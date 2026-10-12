@@ -266,7 +266,6 @@ final class QAMenu: NSPanel {
                 mgr.userOptedOut = !mgr.userOptedOut
                 Logger.debug { "userOptedOut = \(mgr.userOptedOut)" }
             },
-            makeButton("Revalidate") { LicenseManager.shared.revalidateWithServer() },
             makeButton("Mock fresh install") { Self.mockFreshInstall() },
         ])
         resetRow2.orientation = .horizontal

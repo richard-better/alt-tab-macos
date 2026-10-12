@@ -3,7 +3,6 @@ import Security
 
 protocol LicenseAPI {
     func activate(_ licenseKey: String, completion: @escaping (Result<ActivateResult, Error>) -> Void)
-    func validate(_ licenseKey: String, instanceId: String, completion: @escaping (Result<ValidateResult, Error>) -> Void)
     func deactivate(_ licenseKey: String, instanceId: String, completion: @escaping (Result<Void, Error>) -> Void)
 }
 
@@ -11,11 +10,6 @@ struct ActivateResult {
     let instanceId: String
     let variantId: String?
     let customerEmail: String?
-}
-
-struct ValidateResult {
-    let valid: Bool
-    let variantId: String?
 }
 
 struct ActiveInstance {

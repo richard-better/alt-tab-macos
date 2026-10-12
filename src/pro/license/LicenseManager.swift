@@ -25,17 +25,11 @@ class LicenseManager {
     }()
 
     static let trialDuration = 14
-    private static let revalidationInterval: TimeInterval = 30 * 24 * 60 * 60 // 30 days
     static let keychainKeyAccount = "licenseKey"
     static let keychainInstanceAccount = "instanceId"
     static let keychainVariantAccount = "variantId"
     static let customerEmailKey = "customerEmail"
-    /// Variant slugs that grant a Lifetime license (no version cutoff, ever).
-    /// Everything else is regular Pro and may appear in `versionLimitedVariants`.
     static let lifetimeVariants: Set<String> = ["pro_lifetime"]
-    /// Maps version-limited variant slugs to their max supported version.
-    /// When a Pro variant needs a cutoff, add: "variant_slug": "X.Y.Z".
-    static let versionLimitedVariants: [String: String] = [:]
 
     let clock: Clock
     let keychain: Keychain
@@ -47,18 +41,10 @@ class LicenseManager {
     /// Tests leave it unset to avoid side effects.
     var onStateChanged: ((LicenseState) -> Void)?
 
-    /// Provides the current app version for version-limited variant checks. Defaults to the bundle's version;
-    /// tests override to simulate upgrades across cutoffs.
-    var currentAppVersion: () -> String = {
-        Bundle.main.object(forInfoDictionaryKey: "CFBundleShortVersionString") as? String ?? "0"
-    }
-
-    /// Invoked before a license activation flips `state` to `.pro` so any Pro selections that were
-    /// snapshotted when Pro locked can be restored. Wired at app startup; no-op by default so tests
-    /// can drive activation without side effects.
+    /// Restores preferences saved when features were locked, before observers refresh the UI.
     var onBeforeProUnlock: () -> Void = { }
 
-    private(set) var state: LicenseState = .trialExpired {
+    private(set) var state: LicenseState = .pro {
         didSet { onStateChanged?(state) }
     }
 
@@ -94,9 +80,7 @@ class LicenseManager {
         #endif
     }
 
-    /// Pro features are locked out as soon as the license is no longer valid. Degradable Pro
-    /// preferences are downgraded to their Free equivalents immediately via
-    /// `ProTransitionManager.onProLockEngaged()`, wired to the state-change hook in App.swift.
+    /// Only debug QA overlays can lock features. Normal launches always resolve to `.pro`.
     var isProLocked: Bool {
         switch state {
         case .pro, .trial: return false
@@ -132,13 +116,11 @@ class LicenseManager {
     }
 
     func initialize() {
+        if !isMocked { onBeforeProUnlock() }
         state = computeState()
-        scheduleAsyncRevalidationIfNeeded()
     }
 
-    /// Trial `daysRemaining` is baked into the `state` enum, so it stays frozen until something
-    /// reassigns `state`. Call this from UI surfaces before they read `state` so the day count
-    /// reflects the current clock. `didSet` only fires when the value actually changed.
+    /// Preserves debug QA overlays and notifies observers only when the state changes.
     func refreshState() {
         let newState = computeState()
         if newState != state { state = newState }
@@ -202,7 +184,7 @@ class LicenseManager {
                     self.defaults.removeObject(forKey: "lastValidation")
                     self.defaults.removeObject(forKey: "lastValidationResult")
                     self.defaults.removeObject(forKey: Self.customerEmailKey)
-                    self.state = self.computeTrialState()
+                    self.state = self.computeState()
                     completion(.success(()))
                 case .failure(let error):
                     completion(.failure(error))
@@ -223,61 +205,7 @@ class LicenseManager {
         #if DEBUG
         if hasMockedLicense { return state }
         #endif
-        if keychain.value(account: Self.keychainKeyAccount) != nil {
-            let lastValidationResult = defaults.bool(forKey: "lastValidationResult")
-            guard lastValidationResult else { return .trialExpired }
-            if let variant = keychain.value(account: Self.keychainVariantAccount),
-               let maxVersion = Self.versionLimitedVariants[variant] {
-                let currentVersion = currentAppVersion()
-                if currentVersion.compare(maxVersion, options: .numeric) == .orderedDescending {
-                    return .proExpired
-                }
-            }
-            return .pro
-        }
-        return computeTrialState()
-    }
-
-    private func computeTrialState() -> LicenseState {
-        if defaults.object(forKey: "trialStartDate") == nil {
-            defaults.set(clock.now.timeIntervalSince1970, forKey: "trialStartDate")
-        }
-        let trialStart = Date(timeIntervalSince1970: defaults.double(forKey: "trialStartDate"))
-        let daysSinceTrialStart = Int(clock.now.timeIntervalSince(trialStart) / (24 * 60 * 60))
-        guard daysSinceTrialStart < Self.trialDuration else { return .trialExpired }
-        return .trial(daysRemaining: Self.trialDuration - daysSinceTrialStart)
-    }
-
-    func scheduleAsyncRevalidationIfNeeded() {
-        let lastValidation = defaults.double(forKey: "lastValidation")
-        let elapsed = clock.now.timeIntervalSince1970 - lastValidation
-        guard elapsed >= Self.revalidationInterval else { return }
-        revalidateWithServer()
-    }
-
-    func revalidateWithServer() {
-        guard let licenseKey = keychain.value(account: Self.keychainKeyAccount),
-              let instanceId = keychain.value(account: Self.keychainInstanceAccount) else { return }
-        api.validate(licenseKey, instanceId: instanceId) { [weak self] result in
-            DispatchQueue.main.async {
-                guard let self else { return }
-                switch result {
-                case .success(let response):
-                    self.defaults.set(self.clock.now.timeIntervalSince1970, forKey: "lastValidation")
-                    self.defaults.set(response.valid, forKey: "lastValidationResult")
-                    if let variantId = response.variantId {
-                        self.keychain.setValue(variantId, account: Self.keychainVariantAccount)
-                    }
-                    if response.valid {
-                        self.state = self.computeState()
-                    } else {
-                        self.state = .trialExpired
-                    }
-                case .failure:
-                    break // network error: do nothing, try again next launch
-                }
-            }
-        }
+        return .pro
     }
 
     #if DEBUG
