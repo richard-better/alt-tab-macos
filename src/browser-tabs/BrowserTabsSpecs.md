@@ -20,3 +20,5 @@ Both the browser panel and the window switcher's Titles appearance use a shared 
 - Revalidate the browser process before activation. Never open a URL to approximate selecting a missing tab. A stale tab produces an explanatory message and can be refreshed.
 - Search matches every whitespace-separated query term against title, URL or browser name. Preserve the selected tab by identity when refreshing/filtering where possible.
 - Browser queries include whatever windows the browser exposes to its scripting interface; private-window visibility and profile completeness depend on the browser. Firefox and extension-based collection are outside this version.
+
+The permissions window offers optional browser Automation setup for running Safari and Chrome instances. It uses the same permission API and serial collector queue as tab collection, without launching scripts. Skipping or completing setup is remembered, so later launches do not require a running browser or Automation consent.

@@ -9,22 +9,14 @@ class PermissionIllustrationView: NSView {
     enum Kind {
         /// Left: the window you picked is stuck behind another. Right: it came to the front.
         case accessibility
-        /// Left: the switcher with empty placeholders. Right: the same cells filled with window pictures.
-        case screenRecording
+        /// Left: unavailable browser tabs. Right: selectable tab titles.
+        case automation
     }
 
     private static let sceneSize = NSSize(width: 148, height: 86)
     private static let sceneGap = CGFloat(12)
     private static let chevronWidth = CGFloat(10)
     private static let cornerRadius = CGFloat(8)
-    /// Stand-ins for three arbitrary app windows. Mid-tone on purpose: they read the same in both
-    /// appearances, and they are the only fixed colors here.
-    private static let windowTints = [
-        NSColor(srgbRed: 0.55, green: 0.70, blue: 0.88, alpha: 1),
-        NSColor(srgbRed: 0.89, green: 0.62, blue: 0.58, alpha: 1),
-        NSColor(srgbRed: 0.58, green: 0.80, blue: 0.65, alpha: 1),
-    ]
-
     private let kind: Kind
 
     init(_ kind: Kind) {
@@ -71,7 +63,7 @@ class PermissionIllustrationView: NSView {
         background.setClip()
         switch kind {
             case .accessibility: drawFocusScene(rect, granted: granted)
-            case .screenRecording: drawThumbnailsScene(rect, granted: granted)
+            case .automation: drawTabsScene(rect, granted: granted)
         }
         NSGraphicsContext.restoreGraphicsState()
     }
@@ -122,57 +114,16 @@ class PermissionIllustrationView: NSView {
         body.stroke()
     }
 
-    // MARK: - Screen Recording: placeholders become window pictures
-
-    private func drawThumbnailsScene(_ rect: NSRect, granted: Bool) {
-        let panel = NSRect(x: rect.minX + 7, y: rect.minY + 21, width: 134, height: 44)
-        let panelPath = NSBezierPath(roundedRect: panel, xRadius: 9, yRadius: 9)
-        NSColor.textBackgroundColor.setFill()
-        panelPath.fill()
-        NSColor.separatorColor.setStroke()
-        panelPath.lineWidth = 1
-        panelPath.stroke()
-        for index in 0..<3 {
-            let cell = NSRect(x: panel.minX + 5 + CGFloat(index) * 43, y: panel.minY + 5, width: 37, height: 34)
-            if granted {
-                drawThumbnail(cell, tint: Self.windowTints[index])
-            } else {
-                drawPlaceholder(cell)
-            }
-            guard index == 1 else { continue }
-            NSColor.controlAccentColor.setStroke()
-            let selection = NSBezierPath(roundedRect: cell.insetBy(dx: -1, dy: -1), xRadius: 5, yRadius: 5)
-            selection.lineWidth = 2
-            selection.stroke()
+    private func drawTabsScene(_ rect: NSRect, granted: Bool) {
+        for (index, title) in ["Safari", "Chrome", "Browser tabs"].enumerated() {
+            let row = NSRect(x: rect.minX + 8, y: rect.minY + 9 + CGFloat(index) * 23, width: rect.width - 16, height: 20)
+            (granted && index == 1 ? NSColor.controlAccentColor.withAlphaComponent(0.15) : NSColor.textBackgroundColor).setFill()
+            NSBezierPath(roundedRect: row, xRadius: 4, yRadius: 4).fill()
+            (granted ? title : "······").draw(at: NSPoint(x: row.minX + 7, y: row.minY + 3), withAttributes: [
+                .font: NSFont.systemFont(ofSize: 10),
+                .foregroundColor: granted ? NSColor.labelColor : NSColor.tertiaryLabelColor,
+            ])
         }
-    }
-
-    private func drawPlaceholder(_ rect: NSRect) {
-        let path = NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4)
-        path.lineWidth = 1.5
-        path.setLineDash([3, 2.5], count: 2, phase: 0)
-        NSColor.tertiaryLabelColor.setStroke()
-        path.stroke()
-    }
-
-    private func drawThumbnail(_ rect: NSRect, tint: NSColor) {
-        let titlebarHeight = CGFloat(7)
-        let path = NSBezierPath(roundedRect: rect, xRadius: 4, yRadius: 4)
-        NSGraphicsContext.saveGraphicsState()
-        path.setClip()
-        tint.setFill()
-        rect.fill()
-        NSColor.windowBackgroundColor.setFill()
-        NSRect(x: rect.minX, y: rect.minY, width: rect.width, height: titlebarHeight).fill()
-        NSColor.tertiaryLabelColor.setFill()
-        for index in 0..<3 {
-            let dot = NSRect(x: rect.minX + 3 + CGFloat(index) * 4, y: rect.minY + titlebarHeight / 2 - 1, width: 2, height: 2)
-            NSBezierPath(ovalIn: dot).fill()
-        }
-        NSGraphicsContext.restoreGraphicsState()
-        NSColor.separatorColor.setStroke()
-        path.lineWidth = 1
-        path.stroke()
     }
 
     // MARK: - The arrow between the two scenes

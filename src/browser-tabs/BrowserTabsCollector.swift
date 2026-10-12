@@ -11,15 +11,35 @@ final class BrowserTabsCollector: BrowserTabsCollecting {
     func collect(browsers: Set<TabBrowser> = Set(TabBrowser.allCases), _ completion: @escaping (Result<BrowserTabsSnapshot, Error>) -> Void) {
         queue.async {
             let result = Result { () -> BrowserTabsSnapshot in
-                let running = NSWorkspace.shared.runningApplications
-                let targets = running.compactMap { app -> BrowserTabsTarget? in
-                    guard let id = app.bundleIdentifier,
-                          let browser = TabBrowser(rawValue: id), browsers.contains(browser) else { return nil }
-                    return BrowserTabsTarget(browser: browser, processId: app.processIdentifier)
-                }.sorted { ($0.browser.rawValue, $0.processId) < ($1.browser.rawValue, $1.processId) }
+                let targets = Self.runningTargets(browsers: browsers)
                 return try Self.collectSnapshot(targets)
             }
             DispatchQueue.main.async { completion(result) }
+        }
+    }
+
+    static func runningTargets(browsers: Set<TabBrowser> = Set(TabBrowser.allCases)) -> [BrowserTabsTarget] {
+        NSWorkspace.shared.runningApplications.compactMap { app in
+            guard let id = app.bundleIdentifier,
+                  let browser = TabBrowser(rawValue: id), browsers.contains(browser) else { return nil }
+            return BrowserTabsTarget(browser: browser, processId: app.processIdentifier)
+        }.sorted { ($0.browser.rawValue, $0.processId) < ($1.browser.rawValue, $1.processId) }
+    }
+
+    func requestAutomation(_ completion: @escaping ([BrowserTabsIssue], Bool) -> Void) {
+        queue.async {
+            let targets = Self.runningTargets()
+            let issues = Self.automationIssues(targets)
+            DispatchQueue.main.async { completion(issues, !targets.isEmpty) }
+        }
+    }
+
+    static func automationIssues(_ targets: [BrowserTabsTarget],
+                                 requestPermission: (BrowserTabsTarget) -> OSStatus = requestPermission) -> [BrowserTabsIssue] {
+        targets.compactMap { target in
+            let result = requestPermission(target)
+            guard result != noErr else { return nil }
+            return BrowserTabsIssue(browser: target.browser, code: Int(result))
         }
     }
 
@@ -68,8 +88,12 @@ final class BrowserTabsCollector: BrowserTabsCollecting {
     /// Consent can wait on the user indefinitely. Request it on the collector queue before starting
     /// the child process's timeout, so approving a prompt never leaves an already-terminated script.
     private static func requestPermission(_ target: BrowserTabsTarget) -> OSStatus {
+        permissionStatus(target, askUserIfNeeded: true)
+    }
+
+    static func permissionStatus(_ target: BrowserTabsTarget, askUserIfNeeded: Bool) -> OSStatus {
         let descriptor = NSAppleEventDescriptor(processIdentifier: target.processId)
-        return AEDeterminePermissionToAutomateTarget(descriptor.aeDesc, typeWildCard, typeWildCard, true)
+        return AEDeterminePermissionToAutomateTarget(descriptor.aeDesc, typeWildCard, typeWildCard, askUserIfNeeded)
     }
 
     private static func run(_ script: String) throws -> Data {

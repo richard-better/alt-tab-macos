@@ -146,6 +146,22 @@ final class BrowserTabsTests: XCTestCase {
         XCTAssertEqual(snapshot.issues, [BrowserTabsIssue(browser: .safari, code: -1743)])
     }
 
+    func testAutomationSetupRequestsEveryBrowserAndKeepsDenialsSeparate() {
+        let targets = [BrowserTabsTarget(browser: .safari, processId: 100),
+                       BrowserTabsTarget(browser: .chrome, processId: 200)]
+        var requested = [TabBrowser]()
+        let issues = BrowserTabsCollector.automationIssues(targets, requestPermission: { target in
+            requested.append(target.browser)
+            return target.browser == .safari ? -1743 : 0
+        })
+        XCTAssertEqual(requested, [.safari, .chrome])
+        XCTAssertEqual(issues, [BrowserTabsIssue(browser: .safari, code: -1743)])
+        XCTAssertTrue(BrowserTabsCollector.automationIssues([], requestPermission: { _ in
+            XCTFail("Setup must not request consent without a running browser")
+            return 0
+        }).isEmpty)
+    }
+
     func testDeniedConsentDoesNotStartScript() throws {
         let snapshot = try BrowserTabsCollector.collectSnapshot(
             [BrowserTabsTarget(browser: .chrome, processId: 200)],

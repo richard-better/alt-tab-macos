@@ -1,12 +1,7 @@
 import Cocoa
 
-/// The first screen a new user sees. It walks the two macOS permissions one step at a time (see
-/// `PermissionFlow`) and offers exactly two named exits in its bottom bar: quit, or grant. Reopened
-/// later from "Check permissions…" with nothing left to resolve, grant becomes close.
-///
-/// There is deliberately no close box. The old window had one, and clicking it terminated the
-/// app silently — users took it for "I'll deal with this later" and then wondered why AltTab was
-/// gone. Losing the titlebar means losing the drag handle too, hence `isMovableByWindowBackground`.
+/// The setup flow requires Accessibility and offers optional per-browser Automation.
+/// Closing before setup completes quits explicitly; the window has no close box.
 class PermissionsWindow: NSWindow {
     static let contentWidth = CGFloat(470)
     private static let contentInset = CGFloat(22)
@@ -16,9 +11,10 @@ class PermissionsWindow: NSWindow {
     override var canBecomeKey: Bool { SecondaryWindows.canBecomeKey }
 
     private var accessibilityView: PermissionView!
-    private var screenRecordingView: PermissionView!
+    private var automationView: PermissionView!
     private var primaryButton: NSButton!
     private var waiveView: NSView!
+    private let automationMessage = NSTextField(wrappingLabelWithString: "")
 
     convenience init() {
         self.init(contentRect: .zero, styleMask: [.titled, .fullSizeContentView], backing: .buffered, defer: false)
@@ -43,15 +39,18 @@ class PermissionsWindow: NSWindow {
             return
         }
         #endif
-        window.render(AccessibilityPermission.status, ScreenRecordingPermission.status)
+        window.render(AccessibilityPermission.status, BrowserAutomationPermission.status)
     }
 
-    /// "Grant permission" next to "Skipped", also reached from the menubar callout: the window shows Screen Recording
-    /// live again, and macOS asks, or opens the pane if it already did.
-    static func grantScreenRecording() {
+    static func grantBrowserAutomation() {
         App.showPermissionsWindow()
-        ScreenRecordingPermission.request()
-        ScreenRecordingPermission.unwaive()
+        BrowserAutomationPermission.request()
+    }
+
+    static func showAutomationMessage(_ text: String) {
+        shared?.automationMessage.stringValue = text
+        shared?.automationMessage.isHidden = false
+        shared?.resizeToFit()
     }
 
     static func show() {
@@ -61,6 +60,7 @@ class PermissionsWindow: NSWindow {
         Self.shared.center()
         App.shared.activate(ignoringOtherApps: true)
         Self.shared.makeKeyAndOrderFront(nil)
+        SystemPermissions.checkPermissionsSoon()
     }
 
     private func setupWindow() {
@@ -72,7 +72,7 @@ class PermissionsWindow: NSWindow {
     }
 
     private func setupView() {
-        let content = NSStackView(views: [makeHeader(), makeAccessibilityView(), makeScreenRecordingView()])
+        let content = NSStackView(views: [makeHeader(), makeAccessibilityView(), makeAutomationView(), makeAutomationMessage()])
         content.translatesAutoresizingMaskIntoConstraints = false
         content.orientation = .vertical
         content.alignment = .leading
@@ -92,7 +92,7 @@ class PermissionsWindow: NSWindow {
             bar.trailingAnchor.constraint(equalTo: root.trailingAnchor),
             bar.bottomAnchor.constraint(equalTo: root.bottomAnchor),
             accessibilityView.widthAnchor.constraint(equalTo: content.widthAnchor),
-            screenRecordingView.widthAnchor.constraint(equalTo: content.widthAnchor),
+            automationView.widthAnchor.constraint(equalTo: content.widthAnchor),
         ])
         contentView = root
     }
@@ -132,14 +132,23 @@ class PermissionsWindow: NSWindow {
         return NSLocalizedString("Accessibility", comment: "")
     }
 
-    private func makeScreenRecordingView() -> NSView {
-        screenRecordingView = PermissionView(
+    private func makeAutomationView() -> NSView {
+        automationView = PermissionView(
             2,
-            NSLocalizedString("Screen Recording", comment: ""),
-            NSLocalizedString("Switcheroo requires this permission to show you pictures of each window.", comment: "Permissions window"),
-            .screenRecording,
-            onGrantAfterSkip: { Self.grantScreenRecording() })
-        return screenRecordingView
+            NSLocalizedString("Browser Automation", comment: ""),
+            NSLocalizedString("Allow Switcheroo to read and switch tabs in Safari and Chrome. macOS asks separately for each running browser. This is optional for window switching.", comment: "Permissions window"),
+            .automation,
+            onGrantAfterSkip: { Self.grantBrowserAutomation() })
+        return automationView
+    }
+
+    private func makeAutomationMessage() -> NSView {
+        automationMessage.translatesAutoresizingMaskIntoConstraints = false
+        automationMessage.font = .systemFont(ofSize: 12)
+        automationMessage.textColor = .secondaryLabelColor
+        automationMessage.isHidden = true
+        automationMessage.widthAnchor.constraint(equalToConstant: Self.contentWidth - Self.contentInset * 2).isActive = true
+        return automationMessage
     }
 
     private func makeBottomBar() -> NSView {
@@ -166,11 +175,9 @@ class PermissionsWindow: NSWindow {
         return bar
     }
 
-    /// "Continue without thumbnails", with what it costs written underneath. Deliberately not a
-    /// button: it is the weaker of the two paths and shouldn't look like the way forward.
     private func makeWaiveView() -> NSView {
-        let link = Button(NSLocalizedString("Continue without thumbnails", comment: "Permissions window")) { _ in
-            ScreenRecordingPermission.waive()
+        let link = Button(NSLocalizedString("Set up later", comment: "Permissions window")) { _ in
+            BrowserAutomationPermission.waive()
         }
         link.isBordered = false
         link.attributedTitle = NSAttributedString(string: link.title, attributes: [
@@ -178,11 +185,7 @@ class PermissionsWindow: NSWindow {
             .font: NSFont.systemFont(ofSize: 11.5),
             .underlineStyle: NSUnderlineStyle.single.rawValue,
         ])
-        let warning = NSTextField(labelWithString: "⚠︎ " + NSLocalizedString("Windows will show as app icons", comment: "Permissions window"))
-        warning.translatesAutoresizingMaskIntoConstraints = false
-        warning.font = .systemFont(ofSize: 10.5)
-        warning.textColor = .systemOrange
-        let stack = NSStackView(views: [link, warning])
+        let stack = NSStackView(views: [link])
         stack.translatesAutoresizingMaskIntoConstraints = false
         stack.orientation = .vertical
         stack.alignment = .trailing
@@ -191,30 +194,36 @@ class PermissionsWindow: NSWindow {
     }
 
     private func performPrimaryAction() {
-        switch PermissionFlow.primaryAction(accessibility: AccessibilityPermission.status, screenRecording: ScreenRecordingPermission.status) {
+        switch PermissionFlow.primaryAction(accessibility: AccessibilityPermission.status, automation: BrowserAutomationPermission.status) {
             case .grant: grantLiveStep()
             case .close: close()
         }
     }
 
     private func grantLiveStep() {
-        guard let step = PermissionFlow.liveStep(accessibility: AccessibilityPermission.status, screenRecording: ScreenRecordingPermission.status) else { return }
+        guard let step = PermissionFlow.liveStep(accessibility: AccessibilityPermission.status, automation: BrowserAutomationPermission.status) else { return }
         Logger.debug { "\(step)" }
         switch step {
             case .accessibility: AccessibilityPermission.request()
-            case .screenRecording: ScreenRecordingPermission.request()
+            case .automation: BrowserAutomationPermission.request()
         }
     }
 
-    private func render(_ accessibility: PermissionStatus, _ screenRecording: PermissionStatus) {
-        accessibilityView.update(PermissionFlow.state(of: .accessibility, accessibility: accessibility, screenRecording: screenRecording), accessibility,
-            offersGrantAfterSkip: PermissionFlow.offersGrantAfterSkip(.accessibility, accessibility: accessibility, screenRecording: screenRecording))
-        screenRecordingView.update(PermissionFlow.state(of: .screenRecording, accessibility: accessibility, screenRecording: screenRecording), screenRecording,
-            offersGrantAfterSkip: PermissionFlow.offersGrantAfterSkip(.screenRecording, accessibility: accessibility, screenRecording: screenRecording))
-        waiveView.isHidden = !PermissionFlow.showsWaiveOption(accessibility: accessibility, screenRecording: screenRecording)
-        primaryButton.title = PermissionFlow.primaryAction(accessibility: accessibility, screenRecording: screenRecording) == .close
+    private func render(_ accessibility: PermissionStatus, _ automation: PermissionStatus) {
+        accessibilityView.update(PermissionFlow.state(of: .accessibility, accessibility: accessibility, automation: automation), accessibility,
+            offersGrantAfterSkip: PermissionFlow.offersGrantAfterSkip(.accessibility, accessibility: accessibility, automation: automation))
+        automationView.update(PermissionFlow.state(of: .automation, accessibility: accessibility, automation: automation), automation,
+            offersGrantAfterSkip: PermissionFlow.offersGrantAfterSkip(.automation, accessibility: accessibility, automation: automation))
+        waiveView.isHidden = !PermissionFlow.showsWaiveOption(accessibility: accessibility, automation: automation)
+        primaryButton.isEnabled = !BrowserAutomationPermission.isRequestInProgress
+        primaryButton.title = PermissionFlow.primaryAction(accessibility: accessibility, automation: automation) == .close
             ? NSLocalizedString("Close", comment: "Permissions window button")
             : NSLocalizedString("Grant permission", comment: "Permissions window button")
+        if automation != .notGranted { automationMessage.isHidden = true }
+        resizeToFit()
+    }
+
+    private func resizeToFit() {
         contentView!.layoutSubtreeIfNeeded()
         setContentSize(contentView!.fittingSize)
     }
@@ -226,11 +235,10 @@ class PermissionsWindow: NSWindow {
 }
 
 extension PermissionsWindow: NSWindowDelegate {
-    /// Reachable via Cmd-W and the Window menu even without a close button. Before the permissions
-    /// pass, closing is the same decision as `Quit AltTab` — say so rather than quitting silently.
+    /// Cmd-W follows the explicit Quit action until setup completes.
     func windowShouldClose(_ sender: NSWindow) -> Bool {
         guard !SystemPermissions.preStartupPermissionsPassed else { return true }
-        Logger.debug { "accessibility:\(AccessibilityPermission.status), screenRecording:\(ScreenRecordingPermission.status)" }
+        Logger.debug { "accessibility:\(AccessibilityPermission.status), automation:\(BrowserAutomationPermission.status)" }
         App.shared.terminate(self)
         return false // prevent the close; termination will close everything once
     }

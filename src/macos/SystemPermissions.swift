@@ -1,11 +1,11 @@
 import Cocoa
 import notify
-import ScreenCaptureKit.SCShareableContent
+import Carbon
 
 // macOS has some privacy restrictions. The user needs to grant certain permissions, app by app, in System Preferences > Security & Privacy
 // There is no public API to observe permission changes. tccd posts the Darwin notification `com.apple.tcc.access.changed` right
 // after each write to its database, for any app and service, in both directions (measured on macOS 27: ~30ms after the toggle;
-// zero spontaneous posts while idle). `sandboxd` subscribes to it in its launchd plist, in copies from 2020 already. We re-read both
+// zero spontaneous posts while idle). `sandboxd` subscribes to it in its launchd plist, in copies from 2020 already. We re-read Accessibility and browser Automation
 // permissions on each post, coalesced while a check waits to start. A timed-out read gets three bounded retries; resolved checks do no background work.
 // We don't listen to the distributed `com.apple.accessibility.api`: System Settings posts it before tccd writes, see `AccessibilityPermission`.
 class SystemPermissions {
@@ -49,16 +49,15 @@ class SystemPermissions {
 
     private static func checkPermissions() {
         AccessibilityPermission.update()
-        let recording = ScreenRecordingPermission.update()
-        retryUnknownPermissionCheck(recording == nil)
-        Logger.debug { "accessibility:\(AccessibilityPermission.status) screenRecording:\(ScreenRecordingPermission.status)" }
+        let automation = BrowserAutomationPermission.update()
+        retryUnknownPermissionCheck(automation == nil)
+        Logger.debug { "accessibility:\(AccessibilityPermission.status) automation:\(BrowserAutomationPermission.status)" }
         if !preStartupPermissionsPassed {
             checkPermissionsPreStartup()
         } else {
             checkPermissionsPostStartup()
         }
         DispatchQueue.main.async {
-            Menubar.refreshPermissionCallout()
             if PermissionsWindow.shared != nil {
                 PermissionsWindow.updatePermissionViews()
             }
@@ -77,13 +76,16 @@ class SystemPermissions {
     }
 
     private static func checkPermissionsPreStartup() {
-        if PermissionFlow.isComplete(accessibility: AccessibilityPermission.status, screenRecording: ScreenRecordingPermission.status) {
+        if PermissionFlow.isStartupComplete(accessibility: AccessibilityPermission.status, automation: BrowserAutomationPermission.status,
+                    setupCompleted: Preferences.browserAutomationSetupCompleted) {
             DispatchQueue.main.async {
                 guard !preStartupPermissionsPassed else { return }
-                guard PermissionFlow.isComplete(accessibility: AccessibilityPermission.status, screenRecording: ScreenRecordingPermission.status) else {
+                guard PermissionFlow.isStartupComplete(accessibility: AccessibilityPermission.status, automation: BrowserAutomationPermission.status,
+                    setupCompleted: Preferences.browserAutomationSetupCompleted) else {
                     checkPermissionsSoon()
                     return
                 }
+                Preferences.set("browserAutomationSetupCompleted", "true", false)
                 preStartupPermissionsPassed = true
                 PermissionsWindow.shared?.close()
                 App.continueAppLaunchAfterPermissionsAreGranted()
@@ -193,149 +195,56 @@ class AccessibilityPermission {
     }()
 }
 
-class ScreenRecordingPermission {
+enum BrowserAutomationPermission {
     static var status = PermissionStatus.notGranted
+    private static let collector = BrowserTabsCollector()
+    static private(set) var isRequestInProgress = false
 
     @discardableResult
     static func update() -> PermissionStatus? {
-        let detected = detect()
-        if let detected { status = detected }
-        return detected
-    }
-
-    // `CGPreflightScreenCaptureAccess` and tccd's own checks keep answering "denied" after a mid-session grant, but
-    // WindowServer applies the change at once: other apps' window titles appear or vanish, and SCShareableContent works
-    // without a relaunch (measured on macOS 27). So titles are the cheap, silent read; SCShareableContent confirms when
-    // no other app has a titled window.
-    private static func detect() -> PermissionStatus? {
         #if DEBUG
         if QaLifecycle.enabled {
-            return QaLifecycle.permission(1) ? .granted : (Preferences.screenRecordingPermissionSkipped ? .skipped : .notGranted)
+            status = PermissionFlow.automationStatus(results: [QaLifecycle.permission(1) ? 0 : -1744],
+                skipped: Preferences.browserAutomationPermissionSkipped)
+            return status
         }
         #endif
-        if otherAppsWindowTitlesAreVisible() {
-            return .granted
-        }
-        // The user opted out of the prompt (#5548), so we must not call isGrantedOnSomeDisplay(): it shows the system
-        // prompt when ungranted. The skip flag only downgrades .notGranted to .skipped to suppress nagging; it never
-        // masks a real grant (#5739). CGPreflightScreenCaptureAccess is frozen per-process, so it only covers the
-        // launch state; a later grant is seen through the titles above.
-        guard !Preferences.screenRecordingPermissionSkipped else {
-            return CGPreflightScreenCaptureAccess() ? .granted : .skipped
-        }
-        // No entry means not granted. Asking anyway shows the macOS prompt, which puts AltTab back in the list the moment
-        // the user removes it. Prompting is the Grant button's job
-        if SystemPermissions.hasNoEntry("kTCCServiceScreenCapture") == true {
-            return .notGranted
-        }
-        return isGrantedOnSomeDisplay().map { $0 ? .granted : .notGranted }
+        let results = BrowserTabsCollector.runningTargets().map { BrowserTabsCollector.permissionStatus($0, askUserIfNeeded: false) }
+        guard !results.contains(OSStatus(errAETimeout)) else { return nil }
+        status = PermissionFlow.automationStatus(results: results, skipped: Preferences.browserAutomationPermissionSkipped)
+        return status
     }
 
-    /// Same prompt as `AccessibilityPermission.request()`, for the Screen Recording list.
     static func request() {
-        SystemPermissions.promptOrOpenPane("kTCCServiceScreenCapture", "x-apple.systempreferences:com.apple.preference.security?Privacy_ScreenCapture") {
-            CGRequestScreenCaptureAccess()
+        guard !isRequestInProgress else { return }
+        Preferences.remove("browserAutomationPermissionSkipped", false)
+        #if DEBUG
+        if QaLifecycle.enabled {
+            QaLifecycle.recordPermissionRequest("kTCCServiceAppleEvents", prompt: QaLifecycle.permission(3))
+            return
+        }
+        #endif
+        isRequestInProgress = true
+        PermissionsWindow.updatePermissionViews()
+        collector.requestAutomation { issues, hasRunningBrowser in
+            isRequestInProgress = false
+            PermissionsWindow.updatePermissionViews()
+            if !hasRunningBrowser {
+                PermissionsWindow.showAutomationMessage(NSLocalizedString("Open Safari or Chrome, then try again. You can also continue without browser tabs.", comment: ""))
+            } else if !issues.isEmpty {
+                PermissionsWindow.showAutomationMessage(issues.map(\.message).joined(separator: "\n"))
+                if issues.contains(where: { $0.code == Int(errAEEventNotPermitted) }) { openSettings() }
+            }
+            SystemPermissions.checkPermissionsSoon()
         }
     }
 
-    /// The user chose "Continue without thumbnails". Recorded as a preference, which `detect()` then
-    /// reports as `.skipped` — enough for `PermissionFlow` to move past the step, and never enough
-    /// to mask a real grant that arrives later.
+    static func openSettings() {
+        NSWorkspace.shared.open(URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation")!)
+    }
+
     static func waive() {
-        Preferences.set("screenRecordingPermissionSkipped", "true")
+        Preferences.set("browserAutomationPermissionSkipped", "true")
         SystemPermissions.checkPermissionsSoon()
-    }
-
-    /// The user changed their mind after skipping. The step turns live again, so the window offers to grant
-    /// or to skip once more.
-    static func unwaive() {
-        Preferences.remove("screenRecordingPermissionSkipped")
-        SystemPermissions.checkPermissionsSoon()
-    }
-
-    // Without the permission, WindowServer blanks the title of every normal window from another process. Some
-    // system windows on other layers keep theirs, hence the layer filter
-    private static func otherAppsWindowTitlesAreVisible() -> Bool {
-        let ownPid = ProcessInfo.processInfo.processIdentifier
-        guard let windows = CGWindowListCopyWindowInfo([.optionOnScreenOnly], kCGNullWindowID) as? [[String: Any]] else { return false }
-        return windows.contains {
-            ($0[kCGWindowOwnerPID as String] as? pid_t) != ownPid
-                && ($0[kCGWindowLayer as String] as? Int) == 0
-                && !(($0[kCGWindowName as String] as? String) ?? "").isEmpty
-        }
-    }
-
-    // note: shows the system prompt if there's no permission
-    private static func isGrantedOnSomeDisplay() -> Bool? {
-        if #available(macOS 12.3, *) {
-            return checkWithSCShareableContent()
-        } else {
-            let mainDisplayID = CGMainDisplayID()
-            let mainResult = checkWithCGDisplayStream(mainDisplayID)
-            var unknown = mainResult == nil
-            if mainResult == true {
-                return true
-            }
-            // maybe the main screen can't produce a CGDisplayStream, but another screen can
-            // a positive on any screen must mean that the permission is granted; we try on the other screens
-            for screen in NSScreen.screens {
-                if let id = screen.number(), id != mainDisplayID {
-                    let result = checkWithCGDisplayStream(id)
-                    unknown = unknown || result == nil
-                    if result == true {
-                        return true
-                    }
-                }
-            }
-            return unknown ? nil : false
-        }
-    }
-
-    @available(macOS 12.3, *)
-    private static func checkWithSCShareableContent() -> Bool? {
-        return runWithTimeout { completion in
-            SCShareableContent.getExcludingDesktopWindows(true, onScreenWindowsOnly: false) { shareableContent, error in
-                // this callback runs on a GCD queue, not on the thread that called getWithCompletionHandler
-                if #available(macOS 14.0, *), let shareableContent, error == nil {
-                    BackgroundWork.screenshotsQueue.addOperation {
-                        WindowCaptureScreenshots.cachedSCWindows.withLock { $0 = shareableContent.windows }
-                    }
-                }
-                completion(error != nil ? false : (shareableContent != nil))
-            }
-        }
-    }
-
-    private static func checkWithCGDisplayStream(_ id: CGDirectDisplayID) -> Bool? {
-        return runWithTimeout { completion in
-            // this initializer can actually block for a while
-            // it's undocumented but has been proven by spindumps shared by AltTab users
-            let displayStream = CGDisplayStream(
-                dispatchQueueDisplay: id,
-                outputWidth: 1,
-                outputHeight: 1,
-                pixelFormat: Int32(kCVPixelFormatType_32BGRA),
-                properties: nil,
-                queue: .global()
-            ) { _, _, _, _ in }
-            completion(displayStream != nil)
-        }
-    }
-
-    private static func runWithTimeout(_ block: @escaping (@escaping (Bool) -> Void) -> Void) -> Bool? {
-        let semaphore = DispatchSemaphore(value: 0)
-        var result = false
-        BackgroundWork.permissionsSystemCallsQueue.addOperation {
-            block { r in
-                result = r
-                semaphore.signal()
-            }
-        }
-        let timeoutResult = semaphore.wait(timeout: .now() + 6)
-        if timeoutResult == .timedOut {
-            Logger.error { "Screen-recording permission call timed out after 6s" }
-            return nil
-        }
-        return result
     }
 }

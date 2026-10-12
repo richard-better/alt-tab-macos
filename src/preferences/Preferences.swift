@@ -45,7 +45,8 @@ class Preferences {
             "hideStatusIcons": "false",
             "previewFocusedWindow": "false",
             "captureWindowsInBackground": "true",
-            "screenRecordingPermissionSkipped": "false",
+            "browserAutomationPermissionSkipped": "false",
+            "browserAutomationSetupCompleted": "false",
             "trackpadHapticFeedbackEnabled": "true",
             "settingsWindowShownOnFirstLaunch": "false",
         ]
@@ -123,7 +124,8 @@ class Preferences {
     static var exceptions: [ExceptionEntry] { CachedUserDefaults.json("exceptions", [ExceptionEntry].self) }
     static var previewSelectedWindow: Bool { false }
     static var captureWindowsInBackground: Bool { false }
-    static var screenRecordingPermissionSkipped: Bool { CachedUserDefaults.bool("screenRecordingPermissionSkipped") }
+    static var browserAutomationSetupCompleted: Bool { CachedUserDefaults.bool("browserAutomationSetupCompleted") }
+    static var browserAutomationPermissionSkipped: Bool { CachedUserDefaults.bool("browserAutomationPermissionSkipped") }
     static var settingsWindowShownOnFirstLaunch: Bool { CachedUserDefaults.bool("settingsWindowShownOnFirstLaunch") }
 
     // macro values
@@ -372,7 +374,6 @@ class Preferences {
 
     static var anyShortcutUsesPreview: Bool { false }
     static var anyShortcutShowsWindowCaptures: Bool { false }
-    static var screenRecordingDependentFeatures: PermissionCalloutResolver.DependentFeatures { .none }
 
     /// key-above-tab is ` on US keyboard, but can be different on other keyboards
     static func keyAboveTabDependingOnInputSource() -> String {

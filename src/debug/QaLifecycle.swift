@@ -21,7 +21,7 @@ enum QaLifecycle {
         switch mode {
         case "new": return [false, false, true, true]
         case "denied": return [false, false, false, false]
-        case "screen": return [true, false, false, false]
+        case "automation": return [true, false, false, false]
         case "accessibility": return [false, true, false, false]
         default: return [true, true, false, false]
         }
@@ -41,7 +41,7 @@ enum QaLifecycle {
     }
 
     static var restartArguments: [String] {
-        let mode = permission(0) ? (permission(1) ? "granted" : "screen") : (permission(1) ? "accessibility" : "denied")
+        let mode = permission(0) ? (permission(1) ? "granted" : "automation") : (permission(1) ? "accessibility" : "denied")
         return CommandLine.arguments.dropFirst().filter { !$0.hasPrefix("--qa-permissions=") } + ["--qa-permissions=\(mode)"]
     }
     static var licenseService: String { "\(App.bundleIdentifier).qa.lifecycle.\(session!)" }
@@ -59,7 +59,7 @@ enum QaLifecycle {
         var hour: Int?
         var seen: [String]?
         var accessibility: Bool?
-        var screenRecording: Bool?
+        var automation: Bool?
     }
 
     struct Surface: Codable {
@@ -79,9 +79,9 @@ enum QaLifecycle {
         let ready: Bool
         let launchCount: Int
         let accessibility: String
-        let screenRecording: String
+        let automation: String
         let axEntryAbsent: Bool?
-        let screenEntryAbsent: Bool?
+        let automationEntryAbsent: Bool?
         let permissionsMocked: Bool
         let license: String
         let trialStart: Double?
@@ -120,19 +120,19 @@ enum QaLifecycle {
         case "permissions":
             permissionLock.lock()
             if let value = r.accessibility { permissionValues[0] = value }
-            if let value = r.screenRecording { permissionValues[1] = value }
+            if let value = r.automation { permissionValues[1] = value }
             permissionLock.unlock()
             SystemPermissions.checkPermissionsSoon()
         case "open-permissions": App.showPermissionsWindow()
         case "request-accessibility": AccessibilityPermission.request()
-        case "request-screen": ScreenRecordingPermission.request()
-        case "skip-screen": ScreenRecordingPermission.waive()
-        case "unskip-screen": ScreenRecordingPermission.unwaive()
+        case "request-automation": BrowserAutomationPermission.request()
+        case "skip-automation": BrowserAutomationPermission.waive()
+        case "unskip-automation": BrowserAutomationPermission.request()
         case "click": try click(r.text ?? "")
         case "purchase": try purchase()
         case "search": _ = ProFeature.searchInSwitcher.attemptUse()
         case "preference":
-            guard let key = r.key, let value = r.value, ["appearanceStyle", "appearanceSize", "shortcutStyle", "screenRecordingPermissionSkipped"].contains(key) else { throw QaError("Unsupported preference") }
+            guard let key = r.key, let value = r.value, ["appearanceStyle", "appearanceSize", "shortcutStyle", "browserAutomationPermissionSkipped"].contains(key) else { throw QaError("Unsupported preference") }
             Preferences.set(key, value)
         case "keychain": try keychainRoundTrip()
         case "close": closeSurfaces()
@@ -250,8 +250,8 @@ enum QaLifecycle {
         }
         guard SystemPermissions.preStartupPermissionsPassed else {
             return Snapshot(session: session!, pid: getpid(), ready: false, launchCount: 0,
-                accessibility: String(describing: AccessibilityPermission.status), screenRecording: String(describing: ScreenRecordingPermission.status),
-                axEntryAbsent: SystemPermissions.hasNoEntry("kTCCServiceAccessibility"), screenEntryAbsent: SystemPermissions.hasNoEntry("kTCCServiceScreenCapture"),
+                accessibility: String(describing: AccessibilityPermission.status), automation: String(describing: BrowserAutomationPermission.status),
+                axEntryAbsent: SystemPermissions.hasNoEntry("kTCCServiceAccessibility"), automationEntryAbsent: SystemPermissions.hasNoEntry("kTCCServiceAppleEvents"),
                 permissionsMocked: true,
                 license: "notInitialized", trialStart: nil, day: 0, welcomeSeen: false, completed: false,
                 pending: false, freePass: false, badge: false, switcher: false, actions: actions, surfaces: surfaces, error: error)
@@ -259,8 +259,8 @@ enum QaLifecycle {
         let manager = ProTransitionManager.shared
         let license = LicenseManager.shared
         return Snapshot(session: session!, pid: getpid(), ready: finishedLaunching, launchCount: launchCount,
-            accessibility: String(describing: AccessibilityPermission.status), screenRecording: String(describing: ScreenRecordingPermission.status),
-            axEntryAbsent: SystemPermissions.hasNoEntry("kTCCServiceAccessibility"), screenEntryAbsent: SystemPermissions.hasNoEntry("kTCCServiceScreenCapture"),
+            accessibility: String(describing: AccessibilityPermission.status), automation: String(describing: BrowserAutomationPermission.status),
+            axEntryAbsent: SystemPermissions.hasNoEntry("kTCCServiceAccessibility"), automationEntryAbsent: SystemPermissions.hasNoEntry("kTCCServiceAppleEvents"),
             permissionsMocked: true,
             license: String(describing: license.state), trialStart: license.trialStartDate?.timeIntervalSince1970,
             day: license.daysSinceTrialStart + 1, welcomeSeen: manager.hasSeenWelcome,
