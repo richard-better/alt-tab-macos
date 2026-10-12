@@ -23,7 +23,22 @@ class PreferencesMigrations {
                 updateToNewPreferences(versionInPlist)
             }
         }
+        migrateToTitlesOnly()
         Self.defaults.set(App.version, forKey: preferencesKey)
+    }
+
+    static func migrateToTitlesOnly() {
+        // Keep index 2 for Titles so existing installations and stored illustrations agree.
+        defaults.set("2", forKey: "appearanceStyle")
+        defaults.set("false", forKey: "previewFocusedWindow")
+        defaults.set("false", forKey: "captureWindowsInBackground")
+        defaults.removeObject(forKey: "rememberedAppearanceStyle")
+        defaults.removeObject(forKey: "screenRecordingPermissionSkipped")
+        for index in 0...Preferences.maxShortcutCount {
+            defaults.removeObject(forKey: Preferences.indexToName("appearanceStyleOverride", index))
+            defaults.removeObject(forKey: Preferences.indexToName("rememberedAppearanceStyleOverride", index))
+            defaults.removeObject(forKey: Preferences.indexToName("previewFocusedWindowOverride", index))
+        }
     }
 
     static func updateToNewPreferences(_ versionInPlist: String) {

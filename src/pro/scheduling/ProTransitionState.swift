@@ -34,10 +34,6 @@ class ProTransitionState {
 
     // MARK: - Remembered Pro indices (for ghost UI + restoration on unlock)
 
-    var rememberedAppearanceStyle: Int? {
-        get { Self.int(ProGatedPreferences.appearanceStyle.gate!.rememberedKey) }
-        set { Self.setInt(ProGatedPreferences.appearanceStyle.gate!.rememberedKey, newValue) }
-    }
     var rememberedShortcutStyle: Int? {
         get { Self.int(ProGatedPreferences.shortcutStyle.gate!.rememberedKey) }
         set { Self.setInt(ProGatedPreferences.shortcutStyle.gate!.rememberedKey, newValue) }

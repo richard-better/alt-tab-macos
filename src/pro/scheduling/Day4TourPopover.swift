@@ -30,7 +30,6 @@ class Day4TourPopover {
 
     private static func makeFeatureList() -> NSStackView {
         let features = [
-            NSLocalizedString("App Icons / Titles styles", comment: ""),
             NSLocalizedString("Additional shortcuts", comment: ""),
             NSLocalizedString("Search", comment: ""),
         ]

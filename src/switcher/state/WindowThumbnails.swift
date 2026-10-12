@@ -4,7 +4,7 @@ import Cocoa
 /// "preview the selected window" overlay shown next to the switcher panel.
 enum WindowThumbnails {
     static func previewSelectedIfNeeded() {
-        if let session = SwitcherSession.current, ScreenRecordingPermission.status == .granted
+        if let session = SwitcherSession.current, Preferences.anyShortcutShowsWindowCaptures
                && Preferences.effectivePreviewSelectedWindow(session.shortcutIndex)
                && TilesPanel.shared.isKeyWindow,
            let window = Windows.selectedWindow(),
@@ -152,9 +152,8 @@ enum WindowThumbnails {
     /// by `fetchPreviewFrames` into the session's capped cache, so idle RAM stays small and a show
     /// doesn't burst N full-res captures at the system capture path (#5861).
     static func refreshAsync(_ windows: [Window], _ source: RefreshCausedBy, windowRemoved: Bool = false, prioritizedIds: Set<CGWindowID>? = nil, force: Bool = false) {
-        guard (!windows.isEmpty || windowRemoved) && ScreenRecordingPermission.status == .granted
+        guard (!windows.isEmpty || windowRemoved) && Preferences.anyShortcutShowsWindowCaptures
                && !ScreenLockEvents.isScreenLocked
-               && Preferences.anyShortcutShowsWindowCaptures
                // `force` = a targeted background capture of the frontmost window (captureFocusedInBackground),
                // which must run even when the switcher is closed and background capture is off.
                && (Preferences.captureWindowsInBackground || SwitcherSession.isActive || force) else { return }
@@ -186,7 +185,7 @@ enum WindowThumbnails {
     /// CGSHWCaptureWindowList always captures full-size, so `Window.thumbnail` is already sharp.
     static func fetchPreviewFrames() {
         guard #available(macOS 26.0, *), let session = SwitcherSession.current,
-              ScreenRecordingPermission.status == .granted, !ScreenLockEvents.isScreenLocked,
+              Preferences.anyShortcutShowsWindowCaptures, !ScreenLockEvents.isScreenLocked,
               Preferences.effectivePreviewSelectedWindow(session.shortcutIndex) else { return }
         let missingIds = Windows.selectedNeighborhoodIds().filter { !session.hasPreviewFrame($0) && !restoringWids.contains($0) }
         guard !missingIds.isEmpty else { return }

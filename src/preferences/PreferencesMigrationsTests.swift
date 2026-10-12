@@ -28,6 +28,29 @@ final class PreferencesMigrationsTests: XCTestCase {
         super.tearDown()
     }
 
+    func testTitlesOnlyMigrationRemovesLegacyStylesAndCapturesFromEveryShortcut() {
+        defaults.set("1", forKey: "appearanceStyle")
+        defaults.set("2", forKey: "rememberedAppearanceStyle")
+        defaults.set("true", forKey: "previewFocusedWindow")
+        defaults.set("true", forKey: "captureWindowsInBackground")
+        for index in 0...Preferences.maxShortcutCount {
+            defaults.set("0", forKey: Preferences.indexToName("appearanceStyleOverride", index))
+            defaults.set("1", forKey: Preferences.indexToName("rememberedAppearanceStyleOverride", index))
+            defaults.set("true", forKey: Preferences.indexToName("previewFocusedWindowOverride", index))
+        }
+        PreferencesMigrations.migrateToTitlesOnly()
+        PreferencesMigrations.migrateToTitlesOnly()
+        XCTAssertEqual(defaults.string(forKey: "appearanceStyle"), "2")
+        XCTAssertEqual(defaults.string(forKey: "previewFocusedWindow"), "false")
+        XCTAssertEqual(defaults.string(forKey: "captureWindowsInBackground"), "false")
+        XCTAssertNil(defaults.string(forKey: "rememberedAppearanceStyle"))
+        for index in 0...Preferences.maxShortcutCount {
+            XCTAssertNil(defaults.string(forKey: Preferences.indexToName("appearanceStyleOverride", index)))
+            XCTAssertNil(defaults.string(forKey: Preferences.indexToName("rememberedAppearanceStyleOverride", index)))
+            XCTAssertNil(defaults.string(forKey: Preferences.indexToName("previewFocusedWindowOverride", index)))
+        }
+    }
+
     func testBrowserShortcutMigrationAppendsATabSlotWithoutChangingWindowShortcuts() {
         defaults.set("2", forKey: "shortcutCount")
         defaults.set(["custom": "existing"], forKey: "holdShortcut")

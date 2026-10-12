@@ -86,3 +86,7 @@ Mirrors `PreferencesMigrationsTests.swift` 1:1.
 
 
 The fork imports its legacy browser-tab chord into the first new shortcut slot once. The hold modifiers and base key are stored as secure archives, and existing window shortcuts keep their keys and options. The new slot targets Browser tabs, includes Safari and Chrome, and keeps the panel open on release. Import is idempotent. If every slot is occupied, the legacy shortcut remains available until there is space. QA runs with pristine preferences skip this import.
+
+## Titles-only appearance
+
+`migrateToTitlesOnly()` runs at launch independently of version thresholds. It selects Titles at the existing stored index 2, removes all style overrides and remembered Pro styles, and disables window previews and background capture. Other shortcut settings remain intact. Running it again has the same result. `testTitlesOnlyMigrationRemovesLegacyStylesAndCapturesFromEveryShortcut` covers every slot and repeated execution.

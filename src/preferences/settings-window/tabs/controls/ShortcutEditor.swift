@@ -423,39 +423,25 @@ final class OrderingPane {
 // MARK: - Appearance pane (override controls)
 
 final class AppearancePane {
-    /// See `FilteringPane.searchableStrings`. The labels (Size / Theme / After keys released /
-    /// Preview selected window) are shared with the global appearance UI; reference the same
-    /// constants from `AppearanceTab` rather than re-declaring them.
+    /// Search labels share the global appearance UI strings.
     static let searchableStrings: [String] = [
         AppearanceTab.labelSize,
         AppearanceTab.labelTheme,
         AppearanceTab.labelShortcutStyle,
-        AppearanceTab.labelPreviewSelectedWindow,
         ProBadgeView.proLabel,
-    ] + AppearanceStylePreference.allCases.map { $0.localizedString }
-      + AppearanceSizePreference.allCases.map { $0.localizedString }
+    ] + AppearanceSizePreference.allCases.map { $0.localizedString }
       + AppearanceThemePreference.allCases.map { $0.localizedString }
       + ShortcutStylePreference.allCases.map { $0.localizedString }
 
     let view: NSView
-    private let style: ShortcutOverrideRadios
     private let size: ShortcutOverrideSegmented
     private let theme: ShortcutOverrideSegmented
     private let shortcutStyle: ShortcutOverrideSegmented
-    private let preview: ShortcutOverrideSwitch
 
     init(width: CGFloat) {
         let onChange: () -> Void = {
             AppearanceTab.refreshAllOverrideInfoLabels()
         }
-
-        style = ShortcutOverrideRadios(
-            baseName: "appearanceStyleOverride",
-            cases: AppearanceStylePreference.allCases,
-            globalIndex: { Preferences.appearanceStyle.index },
-            proGatedIndices: AppearanceTab.proGatedAppearanceStyleIndices(),
-            onChange: onChange)
-        AppearanceTab.addProBadgesToStyleButtons(style.stack)
 
         size = ShortcutOverrideSegmented(
             baseName: "appearanceSizeOverride",
@@ -491,30 +477,17 @@ final class AppearancePane {
             },
             onChange: onChange)
 
-        preview = ShortcutOverrideSwitch(
-            baseName: "previewFocusedWindowOverride",
-            globalValue: { Preferences.previewSelectedWindow },
-            onChange: onChange)
-
         let table = TableGroupView(width: width)
-        let styleRow = NSStackView(views: [style.stack, style.unlink])
-        styleRow.orientation = .horizontal
-        styleRow.alignment = .centerY
-        styleRow.spacing = TableGroupView.padding
-        table.addRow(secondaryViews: [styleRow], secondaryViewsAlignment: .centerX)
         table.addRow(leftText: AppearanceTab.labelSize, rightViews: [size.segmented, size.unlink])
         table.addRow(leftText: AppearanceTab.labelTheme, rightViews: [theme.segmented, theme.unlink])
         table.addRow(leftText: AppearanceTab.labelShortcutStyle, rightViews: [shortcutStyle.segmented, shortcutStyle.unlink])
-        table.addRow(leftText: AppearanceTab.labelPreviewSelectedWindow, rightViews: [preview.toggle, preview.unlink])
         view = table
     }
 
     func bind(toShortcut index: Int) {
-        style.bind(toShortcut: index)
         size.bind(toShortcut: index)
         theme.bind(toShortcut: index)
         shortcutStyle.bind(toShortcut: index)
-        preview.bind(toShortcut: index)
     }
 }
 

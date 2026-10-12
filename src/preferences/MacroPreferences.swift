@@ -304,6 +304,7 @@ enum ShowTitlesPreference: CaseIterable, MacroPreference {
     }
 }
 
+// Legacy cases preserve stored indices and illustration asset names. The switcher uses Titles only.
 enum AppearanceStylePreference: CaseIterable, ImageMacroPreference {
     case thumbnails
     case appIcons

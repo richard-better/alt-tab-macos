@@ -178,7 +178,6 @@ class UpgradeTab {
 
     private static func makeFeaturesList() -> NSStackView {
         let features = [
-            NSLocalizedString("App Icons & Window Titles styles", comment: ""),
             NSLocalizedString("Search windows by typing", comment: ""),
             NSLocalizedString("Auto-sizing switcher", comment: ""),
             NSLocalizedString("Up to 9 keyboard shortcuts", comment: ""),

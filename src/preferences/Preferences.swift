@@ -25,7 +25,7 @@ class Preferences {
             "cursorFollowFocus": CursorFollowFocus.never.indexAsString,
             "hideColoredCircles": "false",
             "windowDisplayDelay": "100",
-            "appearanceStyle": AppearanceStylePreference.thumbnails.indexAsString,
+            "appearanceStyle": AppearanceStylePreference.titles.indexAsString,
             "appearanceSize": AppearanceSizePreference.auto.indexAsString,
             "appearanceTheme": AppearanceThemePreference.system.indexAsString,
             "showOnScreen": ShowOnScreenPreference.active.indexAsString,
@@ -73,7 +73,7 @@ class Preferences {
             // is a no-op for unset overrides), and the global default for non-gated prefs.
             // `hasOverride(_:_:)` consults `persistentDomain` so registered defaults don't make
             // an unset override look set.
-            values[indexToName("appearanceStyleOverride", index)] = AppearanceStylePreference.thumbnails.indexAsString
+            values[indexToName("appearanceStyleOverride", index)] = AppearanceStylePreference.titles.indexAsString
             values[indexToName("appearanceSizeOverride", index)] = AppearanceSizePreference.medium.indexAsString
             values[indexToName("appearanceThemeOverride", index)] = AppearanceThemePreference.system.indexAsString
             values[indexToName("shortcutStyleOverride", index)] = ShortcutStylePreference.doNothingOnRelease.indexAsString
@@ -121,13 +121,13 @@ class Preferences {
     static var hideStatusIcons: Bool { CachedUserDefaults.bool("hideStatusIcons") }
     static var startAtLogin: Bool { CachedUserDefaults.bool("startAtLogin") }
     static var exceptions: [ExceptionEntry] { CachedUserDefaults.json("exceptions", [ExceptionEntry].self) }
-    static var previewSelectedWindow: Bool { CachedUserDefaults.bool("previewFocusedWindow") }
-    static var captureWindowsInBackground: Bool { CachedUserDefaults.bool("captureWindowsInBackground") }
+    static var previewSelectedWindow: Bool { false }
+    static var captureWindowsInBackground: Bool { false }
     static var screenRecordingPermissionSkipped: Bool { CachedUserDefaults.bool("screenRecordingPermissionSkipped") }
     static var settingsWindowShownOnFirstLaunch: Bool { CachedUserDefaults.bool("settingsWindowShownOnFirstLaunch") }
 
     // macro values
-    static var appearanceStyle: AppearanceStylePreference { ProGatedPreferences.appearanceStyle.read() }
+    static var appearanceStyle: AppearanceStylePreference { .titles }
     static var appearanceSize: AppearanceSizePreference { ProGatedPreferences.appearanceSize.read() }
     static var appearanceTheme: AppearanceThemePreference { CachedUserDefaults.macroPref("appearanceTheme", AppearanceThemePreference.allCases) }
     static var showOnScreen: ShowOnScreenPreference { CachedUserDefaults.macroPref("showOnScreen", ShowOnScreenPreference.allCases) }
@@ -349,11 +349,7 @@ class Preferences {
         CachedUserDefaults.macroPref(indexToName("tabBrowserScope", index), TabBrowserScopePreference.allCases)
     }
 
-    static func effectiveAppearanceStyle(_ index: Int) -> AppearanceStylePreference {
-        guard hasOverride("appearanceStyleOverride", index) else { return appearanceStyle }
-        if index == 0 { return ProGatedPreferences.appearanceStyleOverride0.read() }
-        return CachedUserDefaults.macroPref(indexToName("appearanceStyleOverride", index), AppearanceStylePreference.allCases)
-    }
+    static func effectiveAppearanceStyle(_ index: Int) -> AppearanceStylePreference { .titles }
 
     static func effectiveAppearanceSize(_ index: Int) -> AppearanceSizePreference {
         guard hasOverride("appearanceSizeOverride", index) else { return appearanceSize }
@@ -372,42 +368,11 @@ class Preferences {
         return CachedUserDefaults.macroPref(indexToName("shortcutStyleOverride", index), ShortcutStylePreference.allCases)
     }
 
-    static func effectivePreviewSelectedWindow(_ index: Int) -> Bool {
-        guard hasOverride("previewFocusedWindowOverride", index) else { return previewSelectedWindow }
-        return CachedUserDefaults.bool(indexToName("previewFocusedWindowOverride", index))
-    }
+    static func effectivePreviewSelectedWindow(_ index: Int) -> Bool { false }
 
-    /// captures aren't tied to a specific shortcut, so anything sized or routed for Preview
-    /// must consider every slot's effective setting
-    static var anyShortcutUsesPreview: Bool {
-        (0...maxShortcutCount).contains { effectivePreviewSelectedWindow($0) }
-    }
-
-    /// Whether any shortcut's effective settings display window captures at all: the Thumbnails style
-    /// (tile screenshots) and/or the Preview overlay (whose instant first frame upscales the stored
-    /// thumbnail). When neither is configured, stored images would never be shown, so all capture work
-    /// is skipped and no image RAM is held.
-    static var anyShortcutShowsWindowCaptures: Bool {
-        anyShortcutUsesPreview || (0...maxShortcutCount).contains { effectiveAppearanceStyle($0) == .thumbnails }
-    }
-
-    /// Which Screen-Recording-dependent features any shortcut's effective settings rely on: the
-    /// Thumbnails appearance style (window screenshots) and/or the "preview selected window" overlay.
-    /// These are the only features needing the permission, so when none are configured the menubar
-    /// callout that nags about the missing permission is pointless and is suppressed (see #5623). The
-    /// result also drives which feature(s) the callout names. We OR each flag across every shortcut
-    /// slot, so a per-shortcut override that enables Thumbnails/Preview on any one slot flips it on.
-    /// The pure classification lives in `PermissionCalloutResolver` (unit-tested).
-    static var screenRecordingDependentFeatures: PermissionCalloutResolver.DependentFeatures {
-        var usesThumbnails = false
-        var usesPreviews = false
-        for index in 0...maxShortcutCount {
-            usesThumbnails = usesThumbnails || effectiveAppearanceStyle(index) == .thumbnails
-            usesPreviews = usesPreviews || effectivePreviewSelectedWindow(index)
-            if usesThumbnails && usesPreviews { break }
-        }
-        return PermissionCalloutResolver.dependentFeatures(usesThumbnails: usesThumbnails, usesPreviews: usesPreviews)
-    }
+    static var anyShortcutUsesPreview: Bool { false }
+    static var anyShortcutShowsWindowCaptures: Bool { false }
+    static var screenRecordingDependentFeatures: PermissionCalloutResolver.DependentFeatures { .none }
 
     /// key-above-tab is ` on US keyboard, but can be different on other keyboards
     static func keyAboveTabDependingOnInputSource() -> String {

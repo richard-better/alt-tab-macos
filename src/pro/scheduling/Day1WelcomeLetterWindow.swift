@@ -70,9 +70,8 @@ class Day1WelcomeLetterWindow: ProPromptWindow {
 
     private func makeComparisonView() -> NSView {
         let data: [(String, Bool, Bool)] = [
-            (NSLocalizedString("Reliable, fast window switching with high-quality thumbnails", comment: ""), true, true),
-            (NSLocalizedString("Dark Mode, live preview, window controls, trackpad gestures, and more", comment: ""), true, true),
-            (ProFeatureCopy.appIconsAndTitles, false, true),
+            (NSLocalizedString("Reliable, fast window switching", comment: ""), true, true),
+            (NSLocalizedString("Dark Mode, window controls, trackpad gestures, and more", comment: ""), true, true),
             (ProFeatureCopy.search, false, true),
             (ProFeatureCopy.autoSize, false, true),
             (ProFeatureCopy.extraShortcuts, false, true),

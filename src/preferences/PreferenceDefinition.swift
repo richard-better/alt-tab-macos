@@ -95,12 +95,7 @@ extension PreferenceDefinition {
 /// Registry of every Pro-gated preference. Each entry is declared once here; `Preferences` getters,
 /// `ProTransitionState` lock/unlock passes and `ProFeature.isStoredValuePro` all read from it.
 enum ProGatedPreferences {
-    static let appearanceStyle = PreferenceDefinition<AppearanceStylePreference>(
-        key: "appearanceStyle",
-        gate: PreferenceGate(
-            freeEquivalent: .thumbnails,
-            rememberedKey: "rememberedAppearanceStyle",
-            isProValue: { $0 != .thumbnails }))
+    static let appearanceStyle = PreferenceDefinition<AppearanceStylePreference>(key: "appearanceStyle", gate: nil)
 
     static let appearanceSize = PreferenceDefinition<AppearanceSizePreference>(
         key: "appearanceSize",
@@ -120,12 +115,7 @@ enum ProGatedPreferences {
     // extra shortcuts >= 1 are hard-gated at trigger time). Snapshot/restore plumbing mirrors the
     // global gates above. Registered defaults are the FREE values, so `snapshotAndDowngrade` is a
     // no-op for unset overrides — only explicitly-set Pro overrides get snapshotted on lock.
-    static let appearanceStyleOverride0 = PreferenceDefinition<AppearanceStylePreference>(
-        key: "appearanceStyleOverride",
-        gate: PreferenceGate(
-            freeEquivalent: .thumbnails,
-            rememberedKey: "rememberedAppearanceStyleOverride",
-            isProValue: { $0 != .thumbnails }))
+    static let appearanceStyleOverride0 = PreferenceDefinition<AppearanceStylePreference>(key: "appearanceStyleOverride", gate: nil)
 
     static let appearanceSizeOverride0 = PreferenceDefinition<AppearanceSizePreference>(
         key: "appearanceSizeOverride",
@@ -144,10 +134,8 @@ enum ProGatedPreferences {
     /// All Pro-gated preferences as type-erased descriptors. Iterated by `ProTransitionState`
     /// on lock / unlock.
     static let all: [AnyProGatedPreference] = [
-        appearanceStyle.erased,
         appearanceSize.erased,
         shortcutStyle.erased,
-        appearanceStyleOverride0.erased,
         appearanceSizeOverride0.erased,
         shortcutStyleOverride0.erased,
     ]

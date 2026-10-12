@@ -229,16 +229,6 @@ class ShowHideIllustratedView {
             self.onCheckboxClicked(sender: sender, rowId: hideSpaceNumberLabels.rowId)
         }))
         showHideRows.append(hideSpaceNumberLabels)
-        var hideColoredCircles = ShowHideRowInfo()
-        hideColoredCircles.rowId = "hideColoredCircles"
-        hideColoredCircles.uncheckedImage = "show_colored_circles"
-        hideColoredCircles.checkedImage = "hide_colored_circles"
-        hideColoredCircles.supportedStyles = [.thumbnails]
-        hideColoredCircles.leftViews = [TableGroupView.makeText(ShowHideIllustratedView.hideColoredCirclesLabel)]
-        hideColoredCircles.rightViews.append(LabelAndControl.makeSwitch(hideColoredCircles.rowId, extraAction: { sender in
-            self.onCheckboxClicked(sender: sender, rowId: hideColoredCircles.rowId)
-        }))
-        showHideRows.append(hideColoredCircles)
     }
 
     /// Handles the event when a checkbox is clicked.
@@ -388,7 +378,6 @@ class AppearanceTab: NSObject {
     static let labelSize = NSLocalizedString("Size", comment: "")
     static let labelTheme = NSLocalizedString("Theme", comment: "")
     static let labelShortcutStyle = NSLocalizedString("After keys are released", comment: "")
-    static let labelPreviewSelectedWindow = NSLocalizedString("Preview selected window", comment: "")
 
     static var customizeStyleButton: NSButton!
     static var animationsButton: NSButton!
@@ -396,7 +385,6 @@ class AppearanceTab: NSObject {
     static var animationsSheet: AnimationsSheet!
 
     // References used by `refreshProLockUi()` to update Pro-lock affordances while Settings stays open.
-    private static weak var styleButtonsStack: NSStackView?
     private static weak var sizeControlRef: NSSegmentedControl?
     private static var autoSegmentOverlayRef: ProBadgeView.SegmentOverlay?
     private static weak var shortcutStyleControlRef: NSSegmentedControl?
@@ -454,24 +442,7 @@ class AppearanceTab: NSObject {
     }
 
     private static func makeAppearanceView() -> NSView {
-        let table = TableGroupView(subTitle: NSLocalizedString("Switch between 3 different styles. You can customize them.", comment: ""),
-            width: SettingsWindow.contentWidth)
-        let styleButtons = LabelAndControl.makeImageRadioButtons("appearanceStyle", AppearanceStylePreference.allCases, extraAction: { _ in
-            toggleCustomizeStyleButton()
-            ControlsTab.syncOverrideControlsToGlobal()
-            refreshAllOverrideInfoLabels()
-        }, buttonSpacing: 10, proGatedIndices: proGatedAppearanceStyleIndices())
-        addProBadgesToStyleButtons(styleButtons)
-        styleButtonsStack = styleButtons
-        // For the style row, the control is a horizontal stack of style cards centered in the row.
-        // Wrap [styleButtons, overrideIcon] in another HStack so the icon trails the cards — same
-        // pattern the per-shortcut Appearance section uses for its style + unlink pair.
-        let styleOverrideIcon = makeOverrideIcon("appearanceStyleOverride")
-        let styleRow = NSStackView(views: [styleButtons, styleOverrideIcon])
-        styleRow.orientation = .horizontal
-        styleRow.alignment = .centerY
-        styleRow.spacing = TableGroupView.padding
-        table.addRow(secondaryViews: [styleRow], secondaryViewsAlignment: .centerX)
+        let table = TableGroupView(width: SettingsWindow.contentWidth)
         let sizeControl = LabelAndControl.makeSegmentedControl("appearanceSize", AppearanceSizePreference.allCases, segmentWidth: 105, extraAction: { control in
             refreshAutoSegmentAppearance(control as! NSSegmentedControl)
             ControlsTab.syncOverrideControlsToGlobal()
@@ -497,7 +468,6 @@ class AppearanceTab: NSObject {
                 refreshAllOverrideInfoLabels()
             }), makeOverrideIcon("appearanceThemeOverride")])
         addAfterKeysReleasedRow(table)
-        addPreviewSelectedWindowRow(table)
         table.addRow(rightViews: customizeStyleButton)
         refreshAllOverrideInfoLabels()
         return table
@@ -606,15 +576,6 @@ class AppearanceTab: NSObject {
         ProBadgeView.refreshSelection(in: segmentedControl, proIndex: proIndex, overlay: overlay)
     }
 
-    private static func addPreviewSelectedWindowRow(_ table: TableGroupView) {
-        let switchControl = LabelAndControl.makeSwitch("previewFocusedWindow", extraAction: { _ in
-            ControlsTab.syncOverrideControlsToGlobal()
-            refreshAllOverrideInfoLabels()
-        })
-        _ = table.addRow(leftText: AppearanceTab.labelPreviewSelectedWindow,
-            rightViews: [switchControl, makeOverrideIcon("previewFocusedWindowOverride")])
-    }
-
     private static func makeMultipleScreensView() -> NSView {
         let table = TableGroupView(title: NSLocalizedString("Multiple screens", comment: ""), width: SettingsWindow.contentWidth)
         _ = table.addRow(leftText: NSLocalizedString("Show on", comment: ""),
@@ -677,34 +638,10 @@ class AppearanceTab: NSObject {
             symbol: AppearanceSizePreference.auto.symbol)
     }
 
-    static func addProBadgesToStyleButtons(_ stackView: NSStackView) {
-        for (index, view) in stackView.arrangedSubviews.enumerated() {
-            guard index > 0, let buttonView = view as? ImageTextButtonView else { continue }
-            let badge = ProBadgeView()
-            buttonView.addSubview(badge)
-            NSLayoutConstraint.activate([
-                badge.leadingAnchor.constraint(equalTo: buttonView.label.trailingAnchor, constant: 4),
-                badge.centerYAnchor.constraint(equalTo: buttonView.label.centerYAnchor, constant: 1),
-            ])
-        }
-    }
-
-    /// Indices of `AppearanceStylePreference.allCases` that are Pro-only (everything but `.thumbnails`).
-    static func proGatedAppearanceStyleIndices() -> Set<Int> {
-        Set(AppearanceStylePreference.allCases.enumerated().compactMap { $0.element == .thumbnails ? nil : $0.offset })
-    }
-
-    /// Re-sync the 3 Pro-aware controls to the currently-stored preferences and the ghost state.
+    /// Re-sync the Pro-aware controls to the currently-stored preferences and the ghost state.
     /// Called when `ProTransitionManager.proLockStateDidChangeNotification` fires so a live Settings
     /// window updates immediately after Pro locks/unlocks (instead of requiring a reopen).
     static func refreshProLockUi() {
-        if let styleButtons = styleButtonsStack {
-            let storedStyle = CachedUserDefaults.intFromMacroPref("appearanceStyle", AppearanceStylePreference.allCases)
-            for (index, view) in styleButtons.arrangedSubviews.enumerated() {
-                guard let buttonView = view as? ImageTextButtonView else { continue }
-                buttonView.state = (index == storedStyle) ? .on : .off
-            }
-        }
         if let sizeControl = sizeControlRef {
             let storedSize: AppearanceSizePreference = CachedUserDefaults.macroPref("appearanceSize", AppearanceSizePreference.allCases)
             sizeControl.selectedSegment = storedSize.index
@@ -716,6 +653,5 @@ class AppearanceTab: NSObject {
             refreshShortcutStyleSegmentAppearance(control)
         }
     }
-
 
 }

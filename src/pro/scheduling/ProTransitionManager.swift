@@ -233,9 +233,8 @@ class ProTransitionManager {
             state.freePassUsed = true
             state.hasTriggeredPostExpirationSwitcher = true
             isFreePassSessionActive = true
-            let style = state.rememberedAppearanceStyle.flatMap { AppearanceStylePreference.allCases[safe: $0] }
             let reason = HardGateReason.proPreferences(
-                appearanceStyle: style,
+                appearanceStyle: nil,
                 shortcut: state.rememberedShortcutStyle != nil)
             pendingDismissAction = .showFullUpgrade(reason)
         case .noop:
