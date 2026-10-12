@@ -209,14 +209,20 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
     private func updatePanelSize() {
         let screen = screen ?? NSScreen.main
         let width = min(TitlesStyle.panelWidth, (screen?.visibleFrame.width ?? 900) * 0.9)
-        let height = min(TitlesStyle.panelHeight, (screen?.visibleFrame.height ?? 700) * 0.8)
         let extraHeight = (status.isHidden ? 0 : max(30, status.fittingSize.height))
+        let height = TitlesStyle.panelHeight(rowsHeight: (style.rowHeight + 1) * CGFloat(max(1, snapshot.tabs.count)),
+            screenHeight: screen?.visibleFrame.height ?? 700, statusHeight: extraHeight)
+        let oldCenter = NSPoint(x: frame.midX, y: frame.midY)
         scrollHeight.constant = max(
             style.rowHeight,
             height - TitlesStyle.windowPadding * 2 - TitlesStyle.headerHeight - TitlesStyle.footerHeight -
                 extraHeight
         )
         setContentSize(NSSize(width: width, height: height))
+        if isVisible, let visible = screen?.visibleFrame {
+            setFrameOrigin(NSPoint(x: min(max(oldCenter.x - width / 2, visible.minX), visible.maxX - width),
+                y: min(max(oldCenter.y - height / 2, visible.minY + 12), visible.maxY - height - 12)))
+        }
     }
 
     private func buildContent() {

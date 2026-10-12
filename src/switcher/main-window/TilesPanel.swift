@@ -163,7 +163,7 @@ class TilesPanel: NSPanel {
 
     static func maxThumbnailsHeight(_ screen: NSScreen = NSScreen.preferred) -> CGFloat {
         if Preferences.effectiveAppearanceStyle(SwitcherSession.activeShortcutIndex) == .titles {
-            return min(TitlesStyle.panelHeight, screen.visibleFrame.height * 0.8) - Appearance.windowPadding * 2
+            return max(150, screen.visibleFrame.height - 24) - Appearance.windowPadding * 2
         }
         return (screen.frame.height * Appearance.maxHeightOnScreen - Appearance.windowPadding * 2).rounded()
     }

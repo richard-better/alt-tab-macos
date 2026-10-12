@@ -663,7 +663,7 @@ class TilesView {
 
     private static func layoutLauncherParentViews(_ widthMax: CGFloat, _ maxY: CGFloat) {
         let width = min(widthMax, TitlesStyle.panelWidth - Appearance.windowPadding * 2)
-        let height = min(TitlesStyle.panelHeight, NSScreen.preferred.visibleFrame.height * 0.8)
+        let height = TitlesStyle.panelHeight(rowsHeight: maxY, screenHeight: NSScreen.preferred.visibleFrame.height)
         let contentHeight = max(0, height - Appearance.windowPadding * 2 - TitlesStyle.listTop - TitlesStyle.footerHeight)
         thumbnailsWidth = width
         thumbnailsHeight = contentHeight

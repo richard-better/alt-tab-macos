@@ -65,7 +65,9 @@ struct TitlesStyle {
     }
 
     static let panelWidth = CGFloat(750)
-    static let panelHeight = CGFloat(475)
+    static func panelHeight(rowsHeight: CGFloat, screenHeight: CGFloat, statusHeight: CGFloat = 0) -> CGFloat {
+        min(max(38, rowsHeight) + headerHeight + footerHeight + windowPadding * 2 + statusHeight, max(150, screenHeight - 24))
+    }
     static let headerHeight = CGFloat(64)
     static let footerHeight = CGFloat(52)
     static let iconLabelSpacing = CGFloat(10)
