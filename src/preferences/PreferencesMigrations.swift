@@ -74,7 +74,7 @@ class PreferencesMigrations {
         defaults.set("0", forKey: Preferences.indexToName("tabReleaseBehavior", count))
         defaults.set("0", forKey: Preferences.indexToName("tabBrowserScope", count))
         defaults.set(String(count + 1), forKey: "shortcutCount")
-        defaults.set(true, forKey: "browserShortcutMigrated")
+        defaults.set("true", forKey: "browserShortcutMigrated")
         return count
     }
 

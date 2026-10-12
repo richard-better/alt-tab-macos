@@ -40,6 +40,8 @@ final class PreferencesMigrationsTests: XCTestCase {
         XCTAssertEqual(defaults.string(forKey: "switcherTarget3"), "1")
         XCTAssertEqual(defaults.string(forKey: "tabReleaseBehavior3"), "0")
         XCTAssertEqual(defaults.string(forKey: "shortcutCount"), "3")
+        XCTAssertEqual(defaults.string(forKey: "browserShortcutMigrated"), "true")
+        XCTAssertEqual(Bool(defaults.string(forKey: "browserShortcutMigrated")!), true)
         XCTAssertNil(PreferencesMigrations.migrateBrowserShortcutToSlot(holdStorage: [:], nextStorage: [:]))
         XCTAssertEqual(defaults.string(forKey: "shortcutCount"), "3")
     }
