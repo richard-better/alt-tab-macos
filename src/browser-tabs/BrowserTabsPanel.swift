@@ -52,6 +52,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
         target: nil,
         action: nil
     )
+    private var profileGeneration = 0
     private var snapshot = BrowserTabsSnapshot(tabs: [], issues: [])
     private var rows = [BrowserTab]()
     private var generation = 0
@@ -124,6 +125,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
         frontmostBrowserPid = NSWorkspace.shared.frontmostApplication?.processIdentifier
         Self.activePanel = self
         generation += 1
+        profileGeneration += 1
         let ticket = generation
         configureSearch()
         footer.isHidden = false
@@ -145,6 +147,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
     func dismiss() {
         guard isVisible else { return }
         generation += 1
+        profileGeneration += 1
         activating = false
         commitAfterCollection = false
         if let invocationIndex { KeyRepeatTimer.stopTimerForRepeatingKey(Preferences.indexToName("nextWindowShortcut", invocationIndex)) }
@@ -364,6 +367,8 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
     @objc private func refresh() {
         guard !collecting, !activating else { return }
         collecting = true
+        profileGeneration += 1
+        let profileTicket = profileGeneration
         launcherFooter.button.isEnabled = false
         refreshButton.isEnabled = false
         status.stringValue = NSLocalizedString("Reading Safari and Chrome tabs…", comment: "")
@@ -384,6 +389,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
                 self.snapshot = snapshot
                 if !snapshot.tabs.isEmpty, shownAt == .infinity { shownAt = ProcessInfo.processInfo.systemUptime }
                 filterRows()
+                enrichProfiles(snapshot.windows ?? [], ticket: profileTicket)
                 if commitAfterCollection {
                     commitAfterCollection = false
                     if snapshot.issues.isEmpty { activateSelection() }
@@ -401,6 +407,18 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
                 updatePanelSize()
             }
             restoreFocusAfterOperation()
+        }
+    }
+
+    private func enrichProfiles(_ windows: [BrowserTabsWindow], ticket: Int) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self, isVisible, !activating, profileGeneration == ticket else { return }
+            collector.collectProfiles(windows) { [weak self] pid, profiles in
+                guard let self, isVisible, !activating, profileGeneration == ticket else { return }
+                snapshot = BrowserTabsSnapshot(tabs: BrowserTabsProfiles.applying(
+                    profiles, processId: pid, to: snapshot.tabs), issues: snapshot.issues, windows: snapshot.windows)
+                filterRows()
+            }
         }
     }
 
@@ -555,9 +573,11 @@ private final class BrowserTabCellView: NSTableCellView {
         label.maximumNumberOfLines = 1
         label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
         browser.translatesAutoresizingMaskIntoConstraints = false
+        browser.lineBreakMode = .byTruncatingTail
+        browser.maximumNumberOfLines = 1
         browser.font = .systemFont(ofSize: 12)
         browser.textColor = .secondaryLabelColor
-        browser.setContentCompressionResistancePriority(.required, for: .horizontal)
+        browser.setContentCompressionResistancePriority(.defaultHigh, for: .horizontal)
         addSubview(icon)
         addSubview(label)
         addSubview(browser)
@@ -573,6 +593,7 @@ private final class BrowserTabCellView: NSTableCellView {
                 constant: TitlesStyle.iconLabelSpacing
             ),
             label.trailingAnchor.constraint(equalTo: browser.leadingAnchor, constant: -12),
+            browser.widthAnchor.constraint(lessThanOrEqualToConstant: 180),
             browser.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
             browser.centerYAnchor.constraint(equalTo: centerYAnchor),
             label.centerYAnchor.constraint(equalTo: centerYAnchor),
@@ -586,7 +607,7 @@ private final class BrowserTabCellView: NSTableCellView {
 
     func update(_ tab: BrowserTab, icon: NSImage?, style: TitlesStyle) {
         self.icon.image = icon
-        browser.stringValue = tab.browser.name
+        browser.stringValue = tab.browserLabel
         iconWidth.constant = style.iconSize
         label.stringValue = tab.displayTitle
         label.font = style.font
@@ -602,7 +623,7 @@ private final class BrowserTabCellView: NSTableCellView {
                                                              .paragraphStyle: paragraph,
                                                          ])
         labelHeight.constant = label.cell!.cellSize.height
-        toolTip = "\(tab.displayTitle)\n\(tab.url)"
-        setAccessibilityLabel("\(tab.displayTitle), \(tab.browser.name), \(tab.url)")
+        toolTip = "\(tab.displayTitle)\n\(tab.browserLabel)\n\(tab.url)"
+        setAccessibilityLabel("\(tab.displayTitle), \(tab.browserLabel), \(tab.url)")
     }
 }

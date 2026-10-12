@@ -22,6 +22,11 @@ struct BrowserTab: Codable, Equatable {
     let title: String
     let url: String
     let active: Bool
+    var profileName: String? = nil
+    var browserLabel: String {
+        profileName.map { "\(browser.name) · \($0)" } ?? browser.name
+    }
+
     var identity: String {
         "\(browser.rawValue):\(processId):\(tabId ?? "\(windowId):\(index)")"
     }
@@ -32,7 +37,7 @@ struct BrowserTab: Codable, Equatable {
 
     func matches(_ query: String) -> Bool {
         query.split(whereSeparator: { $0.isWhitespace }).allSatisfy { term in
-            [title, url, browser.name].contains { $0.localizedStandardContains(String(term)) }
+            [title, url, browser.name, profileName ?? ""].contains { $0.localizedStandardContains(String(term)) }
         }
     }
 }
@@ -51,6 +56,16 @@ struct BrowserTabsIssue: Codable, Equatable {
 struct BrowserTabsSnapshot: Codable {
     let tabs: [BrowserTab]
     let issues: [BrowserTabsIssue]
+    var windows: [BrowserTabsWindow]? = nil
+}
+
+extension BrowserTabsSnapshot {
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        tabs = try values.decode([BrowserTab].self, forKey: .tabs)
+        issues = try values.decode([BrowserTabsIssue].self, forKey: .issues)
+        windows = try? values.decodeIfPresent([BrowserTabsWindow].self, forKey: .windows)
+    }
 }
 
 struct BrowserTabActivation: Codable {

@@ -3,7 +3,12 @@ import Cocoa
 
 protocol BrowserTabsCollecting {
     func collect(browsers: Set<TabBrowser>, _ completion: @escaping (Result<BrowserTabsSnapshot, Error>) -> Void)
+    func collectProfiles(_ windows: [BrowserTabsWindow], completion: @escaping (Int32, [String: String]) -> Void)
     func activate(_ tab: BrowserTab, completion: @escaping (Result<Bool, Error>) -> Void)
+}
+
+extension BrowserTabsCollecting {
+    func collectProfiles(_ windows: [BrowserTabsWindow], completion: @escaping (Int32, [String: String]) -> Void) {}
 }
 
 final class BrowserTabsCollector: BrowserTabsCollecting {
@@ -82,7 +87,7 @@ final class BrowserTabsCollector: BrowserTabsCollecting {
         guard !permitted.isEmpty else { return BrowserTabsSnapshot(tabs: [], issues: issues) }
         let output = try executeScript(BrowserTabsScripts.collect(permitted))
         let snapshot = try JSONDecoder().decode(BrowserTabsSnapshot.self, from: output)
-        return BrowserTabsSnapshot(tabs: snapshot.tabs, issues: issues + snapshot.issues)
+        return BrowserTabsSnapshot(tabs: snapshot.tabs, issues: issues + snapshot.issues, windows: snapshot.windows)
     }
 
     /// Consent can wait on the user indefinitely. Request it on the collector queue before starting

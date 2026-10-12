@@ -6,21 +6,34 @@ enum BrowserTabsScripts {
         let targetsJSON = String(decoding: data, as: UTF8.self)
         return """
         var targets = \(targetsJSON);
-        var result = {tabs: [], issues: []};
+        var result = {tabs: [], issues: [], windows: []};
         targets.forEach(function(target) {
             try {
                 var app = Application(Number(target.processId));
                 if (!app.running()) return;
                 var safari = target.browser === 'com.apple.Safari';
+                var windows = [];
+                var completeWindows = true;
                 app.windows().forEach(function(w) {
                     var selected = safari ? w.currentTab().index() : w.activeTabIndex();
+                    var windowId = String(w.id());
+                    var activeTitle = null;
                     w.tabs().forEach(function(t, offset) {
+                        var title = String(safari ? t.name() : t.title());
+                        if (selected === offset + 1) activeTitle = title;
                         result.tabs.push({browser: target.browser, processId: Number(target.processId),
-                            windowId: String(w.id()), tabId: safari ? null : String(t.id()),
-                            index: offset + 1, title: String(safari ? t.name() : t.title()),
+                            windowId: windowId, tabId: safari ? null : String(t.id()),
+                            index: offset + 1, title: title,
                             url: String(t.url() || ''), active: selected === offset + 1});
                     });
+                    if (!safari && activeTitle !== null) {
+                        try {
+                            windows.push({processId: Number(target.processId), windowId: windowId,
+                                activeTitle: activeTitle, mode: String(w.mode()), bounds: w.bounds()});
+                        } catch (error) { completeWindows = false; }
+                    }
                 });
+                if (completeWindows) result.windows = result.windows.concat(windows);
             } catch (error) {
                 result.issues.push({browser: target.browser, code: Number(error.errorNumber || error.number || 0)});
             }

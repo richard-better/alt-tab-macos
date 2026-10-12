@@ -16,7 +16,8 @@ final class BrowserTabsTests: XCTestCase {
     ];
     var safariWindow = {id: function(){return 10;}, tabs: function(){return safariTabs;},
         currentTab: function(){return {index: function(){return 2;}};}};
-    var chromeWindow = {id: function(){return 20;}, tabs: function(){return chromeTabs;}, activeTabIndex: function(){return 1;}};
+    var chromeWindow = {id: function(){return 20;}, tabs: function(){return chromeTabs;}, activeTabIndex: function(){return 1;}, mode: function(){return 'normal';},
+        bounds: function(){return {x:10,y:20,width:800,height:600};}};
     function Application(id) { return {running: function(){return true;},
         windows: function(){return id === 100 ? [safariWindow] : [chromeWindow];},
         activate: function(){activated = true;}}; }
@@ -61,6 +62,196 @@ final class BrowserTabsTests: XCTestCase {
         let snapshot = try JSONDecoder().decode(BrowserTabsSnapshot.self, from: Data(json.utf8))
         XCTAssertEqual(snapshot.tabs.map(\.browser), [.chrome, .chrome])
         XCTAssertEqual(snapshot.issues, [BrowserTabsIssue(browser: .safari, code: -1743)])
+    }
+
+    private let profileBounds = BrowserTabsBounds(x: 10, y: 20, width: 800, height: 600)
+    private func profileWindow(id: String = "20", title: String = "Same", mode: String = "normal") -> BrowserTabsWindow {
+        BrowserTabsWindow(processId: 200, windowId: id, activeTitle: title, mode: mode, bounds: profileBounds)
+    }
+
+    func testProfileMetadataIsCollectedOncePerChromeWindowAndSafariIsExcluded() throws {
+        let script = try BrowserTabsScripts.collect([
+            BrowserTabsTarget(browser: .safari, processId: 100), BrowserTabsTarget(browser: .chrome, processId: 200)])
+        let (json, _) = try evaluate(script)
+        let snapshot = try JSONDecoder().decode(BrowserTabsSnapshot.self, from: Data(json.utf8))
+        XCTAssertEqual(snapshot.tabs.count, 4)
+        XCTAssertEqual(snapshot.windows, [profileWindow()])
+    }
+
+    func testMissingOptionalWindowMetadataDoesNotLoseTabsOrReportAnIssue() throws {
+        let (json, _) = try evaluate(BrowserTabsScripts.collect([BrowserTabsTarget(browser: .chrome, processId: 200)]),
+                                   extra: "chromeWindow.bounds = function(){throw new Error('Unavailable');};")
+        let snapshot = try JSONDecoder().decode(BrowserTabsSnapshot.self, from: Data(json.utf8))
+        XCTAssertEqual(snapshot.tabs.count, 2)
+        XCTAssertEqual(snapshot.windows, [])
+        XCTAssertTrue(snapshot.issues.isEmpty)
+    }
+
+    func testProfileResolutionAcceptsUniqueGeometryAndActiveTitle() {
+        let accessible = BrowserTabsAccessibleWindow(title: "Same - Google Chrome - Work - Voy", bounds: profileBounds)
+        XCTAssertEqual(BrowserTabsProfiles.resolve([profileWindow()], accessible: [accessible]), ["20": "Work - Voy"])
+        XCTAssertNil(BrowserTabsProfiles.profileName("Same - Google Chrome", activeTitle: "Same"))
+        XCTAssertNil(BrowserTabsProfiles.profileName("Same - Google Chrome -   ", activeTitle: "Same"))
+        XCTAssertNil(BrowserTabsProfiles.profileName("Other - Google Chrome - Work", activeTitle: "Same"))
+        XCTAssertNil(BrowserTabsProfiles.profileName(" - Google Chrome - Work", activeTitle: ""))
+        XCTAssertEqual(BrowserTabsProfiles.profileName("Same - Google Chrome - Fake - Google Chrome - Real",
+                                                     activeTitle: "Same - Google Chrome - Fake"), "Real")
+    }
+
+    func testProfileResolutionRejectsCollisionsInEitherSnapshotAndDuplicateIDs() {
+        let accessible = BrowserTabsAccessibleWindow(title: "Same - Google Chrome - Work", bounds: profileBounds)
+        XCTAssertTrue(BrowserTabsProfiles.resolve([profileWindow()], accessible: [accessible, accessible]).isEmpty)
+        XCTAssertTrue(BrowserTabsProfiles.resolve([profileWindow(), profileWindow(id: "21")], accessible: [accessible]).isEmpty)
+        XCTAssertTrue(BrowserTabsProfiles.resolve([profileWindow(), profileWindow(title: "Other")], accessible: [accessible]).isEmpty)
+    }
+
+    func testPrivateGuestModalAndUnrecognizedLocalizedTitlesStayUnlabeled() {
+        for mode in ["incognito", "guest", "unknown"] {
+            let accessible = BrowserTabsAccessibleWindow(title: "Same - Google Chrome - Work", bounds: profileBounds)
+            XCTAssertTrue(BrowserTabsProfiles.resolve([profileWindow(mode: mode)], accessible: [accessible]).isEmpty)
+        }
+        for title in ["Same - Google Chrome (Incognito)", "Dialog", "Same - Google Chrome", "Same / Google Chrome / Work"] {
+            let accessible = BrowserTabsAccessibleWindow(title: title, bounds: profileBounds)
+            XCTAssertTrue(BrowserTabsProfiles.resolve([profileWindow()], accessible: [accessible]).isEmpty)
+        }
+    }
+
+    func testMovedWindowsAndStaleActiveTitlesStayUnlabeled() {
+        let moved = BrowserTabsBounds(x: 11, y: 20, width: 800, height: 600)
+        XCTAssertTrue(BrowserTabsProfiles.resolve([profileWindow()], accessible: [
+            BrowserTabsAccessibleWindow(title: "Same - Google Chrome - Work", bounds: moved)]).isEmpty)
+        XCTAssertTrue(BrowserTabsProfiles.resolve([profileWindow()], accessible: [
+            BrowserTabsAccessibleWindow(title: "Changed - Google Chrome - Work", bounds: profileBounds)]).isEmpty)
+        XCTAssertFalse(profileBounds.matches(BrowserTabsBounds(x: .nan, y: 20, width: 800, height: 600)))
+        XCTAssertFalse(profileBounds.matches(BrowserTabsBounds(x: 10, y: 20, width: 0, height: 600)))
+    }
+
+    func testProfileEnrichmentKeepsIdentityAndIsScopedToBrowserAndProcess() throws {
+        let (json, _) = try evaluate(BrowserTabsScripts.collect([
+            BrowserTabsTarget(browser: .safari, processId: 100), BrowserTabsTarget(browser: .chrome, processId: 200)]))
+        let original = try JSONDecoder().decode(BrowserTabsSnapshot.self, from: Data(json.utf8))
+        let tabs = BrowserTabsProfiles.applying(["20": "Work"], processId: 200, to: original.tabs)
+        XCTAssertEqual(tabs.map(\.identity), original.tabs.map(\.identity))
+        XCTAssertEqual(tabs.map(\.profileName), [nil, nil, "Work", "Work"])
+        XCTAssertEqual(tabs.last?.browserLabel, "Chrome · Work")
+        XCTAssertTrue(try XCTUnwrap(tabs.last).matches("chrome work same"))
+        XCTAssertEqual(BrowserTabsProfiles.applying(["20": "Other"], processId: 201, to: tabs), tabs)
+        XCTAssertNil(BrowserTabsProfiles.applying([:], processId: 200, to: tabs).last?.profileName)
+    }
+
+    func testLegacySnapshotDecodesWithoutProfileMetadata() throws {
+        let snapshot = try JSONDecoder().decode(BrowserTabsSnapshot.self, from: Data("{\"tabs\":[],\"issues\":[]}".utf8))
+        XCTAssertNil(snapshot.windows)
+    }
+
+    func testIncompleteScriptingWindowInventoryDoesNotClaimAUniqueProfileMatch() throws {
+        let (json, _) = try evaluate(BrowserTabsScripts.collect([BrowserTabsTarget(browser: .chrome, processId: 200)]),
+                                   extra: """
+                                   var otherWindow = Object.create(chromeWindow);
+                                   otherWindow.id = function(){return 21;};
+                                   otherWindow.bounds = function(){throw new Error('Unavailable');};
+                                   Application = function(){return {running:function(){return true;},
+                                       windows:function(){return [chromeWindow, otherWindow];}};};
+                                   """)
+        let snapshot = try JSONDecoder().decode(BrowserTabsSnapshot.self, from: Data(json.utf8))
+        XCTAssertEqual(snapshot.tabs.count, 4)
+        XCTAssertEqual(snapshot.windows, [])
+    }
+
+    func testMalformedOptionalWindowMetadataDoesNotInvalidateTabCollection() throws {
+        let (json, _) = try evaluate(BrowserTabsScripts.collect([BrowserTabsTarget(browser: .chrome, processId: 200)]),
+                                   extra: "chromeWindow.bounds = function(){return null;};")
+        let snapshot = try JSONDecoder().decode(BrowserTabsSnapshot.self, from: Data(json.utf8))
+        XCTAssertEqual(snapshot.tabs.count, 2)
+        XCTAssertNil(snapshot.windows)
+        XCTAssertTrue(snapshot.issues.isEmpty)
+    }
+
+    func testProfileArrivalFiltersAlreadyDisplayedTabsAndPreservesSelection() throws {
+        _ = NSApplication.shared
+        let collector = DeferredBrowserTabsCollector()
+        let started = expectation(description: "collection started")
+        let profilesStarted = expectation(description: "profile enrichment started")
+        collector.onCollect = { started.fulfill() }
+        collector.onCollectProfiles = { profilesStarted.fulfill() }
+        let panel = BrowserTabsPanel(collector: collector)
+        defer { panel.dismiss() }
+        panel.present()
+        wait(for: [started], timeout: 1)
+        collector.completion?(.success(BrowserTabsSnapshot(tabs: sampleTabs(), issues: [], windows: [profileWindow()])))
+        XCTAssertEqual(panel.numberOfRows(in: NSTableView()), 3)
+        wait(for: [profilesStarted], timeout: 1)
+        let table = try XCTUnwrap(findTable(try XCTUnwrap(panel.contentView)))
+        table.selectRowIndexes(IndexSet(integer: 1), byExtendingSelection: false)
+        collector.profileCompletion?(200, ["20": "Work"])
+        XCTAssertEqual(table.selectedRow, 1)
+        let search = try XCTUnwrap(findSearchField(try XCTUnwrap(panel.contentView)))
+        search.stringValue = "work"
+        panel.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: search))
+        XCTAssertEqual(panel.numberOfRows(in: table), 3)
+    }
+
+    func testLongProfileLabelsLeaveRoomForTheTabTitle() throws {
+        _ = NSApplication.shared
+        let collector = DeferredBrowserTabsCollector()
+        let started = expectation(description: "collection started")
+        collector.onCollect = { started.fulfill() }
+        let populatedPanel = BrowserTabsPanel(collector: collector)
+        defer { populatedPanel.dismiss() }
+        populatedPanel.present()
+        wait(for: [started], timeout: 1)
+        var tab = try XCTUnwrap(sampleTabs().first)
+        tab.profileName = String(repeating: "Long profile ", count: 30)
+        collector.completion?(.success(BrowserTabsSnapshot(tabs: [tab], issues: [])))
+        let table = try XCTUnwrap(findTable(try XCTUnwrap(populatedPanel.contentView)))
+        let cell = try XCTUnwrap(populatedPanel.tableView(table, viewFor: nil, row: 0))
+        cell.frame = NSRect(x: 0, y: 0, width: 600, height: 40)
+        cell.layoutSubtreeIfNeeded()
+        let labels = cell.subviews.compactMap { $0 as? NSTextField }
+        let browser = try XCTUnwrap(labels.first { $0.stringValue == tab.browserLabel })
+        let title = try XCTUnwrap(labels.first { $0.stringValue == tab.displayTitle })
+        XCTAssertLessThanOrEqual(browser.alignmentRect(forFrame: browser.frame).width, 180)
+        XCTAssertGreaterThan(title.frame.width, 300)
+        XCTAssertTrue(cell.toolTip?.contains(tab.browserLabel) == true)
+    }
+
+    func testLateProfileResultsCannotChangeANewerRefreshOrReopenedPanel() throws {
+        _ = NSApplication.shared
+        let collector = DeferredBrowserTabsCollector()
+        let started = expectation(description: "collection started")
+        let profilesStarted = expectation(description: "profile enrichment started")
+        collector.onCollect = { started.fulfill() }
+        collector.onCollectProfiles = { profilesStarted.fulfill() }
+        let panel = BrowserTabsPanel(collector: collector)
+        defer { panel.dismiss() }
+        panel.present()
+        wait(for: [started], timeout: 1)
+        collector.completion?(.success(BrowserTabsSnapshot(tabs: sampleTabs(), issues: [], windows: [profileWindow()])))
+        wait(for: [profilesStarted], timeout: 1)
+        let lateProfiles = try XCTUnwrap(collector.profileCompletion)
+        let refreshed = expectation(description: "refresh started")
+        collector.onCollect = { refreshed.fulfill() }
+        collector.onCollectProfiles = nil
+        _ = panel.handle(try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero,
+            modifierFlags: .command, timestamp: 0, windowNumber: panel.windowNumber, context: nil,
+            characters: "r", charactersIgnoringModifiers: "r", isARepeat: false, keyCode: UInt16(kVK_ANSI_R))))
+        wait(for: [refreshed], timeout: 1)
+        collector.completion?(.success(BrowserTabsSnapshot(tabs: sampleTabs(), issues: [], windows: [profileWindow()])))
+        lateProfiles(200, ["20": "Stale"])
+        let search = try XCTUnwrap(findSearchField(try XCTUnwrap(panel.contentView)))
+        search.stringValue = "stale"
+        panel.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: search))
+        XCTAssertEqual(panel.numberOfRows(in: NSTableView()), 0)
+        panel.dismiss()
+        panel.present()
+        lateProfiles(200, ["20": "Stale"])
+        panel.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: search))
+        XCTAssertEqual(panel.numberOfRows(in: NSTableView()), 0)
+    }
+
+    private func findTable(_ view: NSView) -> NSTableView? {
+        if let table = view as? NSTableView { return table }
+        return view.subviews.compactMap { findTable($0) }.first
     }
 
     func testChromeActivationFindsMovedTabByID() throws {
@@ -143,6 +334,7 @@ final class BrowserTabsTests: XCTestCase {
             return Data(json.utf8)
         })
         XCTAssertEqual(snapshot.tabs.map(\.browser), [.chrome, .chrome])
+        XCTAssertEqual(snapshot.windows, [profileWindow()])
         XCTAssertEqual(snapshot.issues, [BrowserTabsIssue(browser: .safari, code: -1743)])
     }
 
@@ -414,6 +606,8 @@ final class BrowserTabsTests: XCTestCase {
 
 private final class DeferredBrowserTabsCollector: BrowserTabsCollecting {
     var onCollect: (() -> Void)?
+    var onCollectProfiles: (() -> Void)?
+    var profileCompletion: ((Int32, [String: String]) -> Void)?
     var completion: ((Result<BrowserTabsSnapshot, Error>) -> Void)?
     var activationCompletion: ((Result<Bool, Error>) -> Void)?
     var activatedTabs = [BrowserTab]()
@@ -422,6 +616,11 @@ private final class DeferredBrowserTabsCollector: BrowserTabsCollecting {
         requestedBrowsers = browsers
         self.completion = completion
         onCollect?()
+    }
+
+    func collectProfiles(_ windows: [BrowserTabsWindow], completion: @escaping (Int32, [String: String]) -> Void) {
+        profileCompletion = completion
+        onCollectProfiles?()
     }
 
     func activate(_ tab: BrowserTab, completion: @escaping (Result<Bool, Error>) -> Void) {

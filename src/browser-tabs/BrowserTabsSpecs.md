@@ -18,7 +18,19 @@ Both the browser panel and the window switcher's Titles appearance use a shared 
 - Keep successful results when the other browser fails. Show its permission/error status alongside available tabs. Refresh is explicit; there is no background polling.
 - Chrome activation resolves the native tab ID across windows, including a tab moved after the snapshot. Safari resolves the window ID and position and validates the title and URL; reject a changed position. Safari does not provide a stable tab ID, so identical tabs cannot be distinguished after a reorder.
 - Revalidate the browser process before activation. Never open a URL to approximate selecting a missing tab. A stale tab produces an explanatory message and can be refreshed.
-- Search matches every whitespace-separated query term against title, URL or browser name. Preserve the selected tab by identity when refreshing/filtering where possible.
+- Search matches every whitespace-separated query term against title, URL, browser name or discovered profile name. Preserve the selected tab by identity when refreshing/filtering where possible.
 - Browser queries include whatever windows the browser exposes to its scripting interface; private-window visibility and profile completeness depend on the browser. Firefox and extension-based collection are outside this version.
 
 The permissions window offers optional browser Automation setup for running Safari and Chrome instances. It uses the same permission API and serial collector queue as tab collection, without launching scripts. Skipping or completing setup is remembered, so later launches do not require a running browser or Automation consent.
+
+## Chrome profile labels
+
+Normal Chrome tabs show `Chrome · <profile>` when their window matches exactly one accessibility window. Search, tooltips, and accessibility labels include the profile name. Labels truncate at 180 points so long names leave room for the tab title. Labels do not affect tab identity or activation.
+
+Collection displays tabs before scheduling optional profile reads through the AX scan lane. Activation never waits for these reads. Each Chrome process gets a 400 ms read budget and a 150 ms AX messaging timeout. Missing access and unsuccessful reads leave tabs unlabeled without a collection error. Profile detection requires no permission prompt, profile-file access, disk persistence, or polling.
+
+Chrome scripting window IDs differ from native CGWindowIDs. Match geometry within one point and the scripted active-tab title. Accept only a unique match in both directions. Equal geometry and titles, duplicate IDs, changed active titles, moved windows, missing metadata, and modal titles remain unlabeled. Failed optional scripting metadata invalidates that process's window metadata. Failed AX reads invalidate the whole AX inventory, so a partial inventory cannot establish uniqueness.
+
+Private and guest windows never inherit a named profile. Chrome omits its profile suffix for a single profile. The recognized format is `<active title> - Google Chrome - <profile>`, from Chromium's `IDS_ACCESSIBLE_WINDOW_TITLE_WITH_PROFILE_FORMAT`. Unrecognized localized formats stay unlabeled.
+
+Profile updates run after rendering, on a subsequent main-runloop turn. A separate refresh generation rejects late results after dismissal, activation, or a newer refresh. Filtering preserves the selected tab's identity when labels arrive.
