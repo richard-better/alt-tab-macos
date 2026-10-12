@@ -2,19 +2,19 @@ import Carbon
 import Cocoa
 
 protocol BrowserTabsCollecting {
-    func collect(_ completion: @escaping (Result<BrowserTabsSnapshot, Error>) -> Void)
+    func collect(browsers: Set<TabBrowser>, _ completion: @escaping (Result<BrowserTabsSnapshot, Error>) -> Void)
     func activate(_ tab: BrowserTab, completion: @escaping (Result<Bool, Error>) -> Void)
 }
 
 final class BrowserTabsCollector: BrowserTabsCollecting {
     private let queue = DispatchQueue(label: "alt-tab.browser-tabs", qos: .userInitiated)
-    func collect(_ completion: @escaping (Result<BrowserTabsSnapshot, Error>) -> Void) {
+    func collect(browsers: Set<TabBrowser> = Set(TabBrowser.allCases), _ completion: @escaping (Result<BrowserTabsSnapshot, Error>) -> Void) {
         queue.async {
             let result = Result { () -> BrowserTabsSnapshot in
                 let running = NSWorkspace.shared.runningApplications
                 let targets = running.compactMap { app -> BrowserTabsTarget? in
                     guard let id = app.bundleIdentifier,
-                          let browser = TabBrowser(rawValue: id) else { return nil }
+                          let browser = TabBrowser(rawValue: id), browsers.contains(browser) else { return nil }
                     return BrowserTabsTarget(browser: browser, processId: app.processIdentifier)
                 }.sorted { ($0.browser.rawValue, $0.processId) < ($1.browser.rawValue, $1.processId) }
                 return try Self.collectSnapshot(targets)

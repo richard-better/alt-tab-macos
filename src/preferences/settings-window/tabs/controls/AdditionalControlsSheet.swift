@@ -14,15 +14,12 @@ class AdditionalControlsSheet: SheetWindow {
     private static let labelTrackpad = NSLocalizedString("Trackpad haptic feedback", comment: "")
 
     /// Pre-build search index for the open-button. See `SettingsSearchIndex.sheetSearchableStrings`.
-    static let searchableStrings: [String] = [
-        title, titleMiscellaneous, labelBrowserTabs,
-        labelArrows, labelVim, labelMouse,
-        labelCursorFollow, labelTrackpad,
-    ] + CursorFollowFocus.allCases.map { $0.localizedString }
+    static var searchableStrings: [String] {
+        [title, titleMiscellaneous, labelArrows, labelVim, labelMouse, labelCursorFollow, labelTrackpad] +
+            (CachedUserDefaults.bool("browserShortcutMigrated") ? [] : [labelBrowserTabs]) + CursorFollowFocus.allCases.map { $0.localizedString }
+    }
 
     override func makeContentView() -> NSView {
-        let browserTabs = TableGroupView.Row(leftTitle: Self.labelBrowserTabs,
-            rightViews: [LabelAndControl.makeLabelWithRecorder(Self.labelBrowserTabs, "browserTabsShortcut", Preferences.shortcut("browserTabsShortcut"), labelPosition: .right)[0]])
         let enableArrows = TableGroupView.Row(leftTitle: Self.labelArrows,
             rightViews: [LabelAndControl.makeSwitch("arrowKeysEnabled", extraAction: ControlsTab.arrowKeysEnabledCallback)])
         let enableVimKeys = TableGroupView.Row(leftTitle: Self.labelVim,
@@ -38,7 +35,11 @@ class AdditionalControlsSheet: SheetWindow {
         ControlsTab.arrowKeysEnabledCallback(ControlsTab.arrowKeysCheckbox)
         ControlsTab.vimKeysEnabledCallback(ControlsTab.vimKeysCheckbox)
         let table1 = TableGroupView(title: Self.title, width: SheetWindow.width)
-        _ = table1.addRow(browserTabs)
+        if !CachedUserDefaults.bool("browserShortcutMigrated") {
+            let browserTabs = TableGroupView.Row(leftTitle: Self.labelBrowserTabs,
+                rightViews: [LabelAndControl.makeLabelWithRecorder(Self.labelBrowserTabs, "browserTabsShortcut", Preferences.shortcut("browserTabsShortcut"), labelPosition: .right)[0]])
+            _ = table1.addRow(browserTabs)
+        }
         _ = table1.addRow(enableArrows)
         _ = table1.addRow(enableVimKeys)
         _ = table1.addRow(enableMouse)

@@ -45,7 +45,7 @@ class ATShortcut {
             return modifiers.cleaned() == shortcut.carbonModifierFlags.cleaned()
         }
         let session = SwitcherSession.current
-        let holdModifiersCleaned = ControlsTab.shortcuts[Preferences.indexToName("holdShortcut", session?.shortcutIndex ?? 0)]?.shortcut.carbonModifierFlags.cleaned() ?? 0
+        let holdModifiersCleaned = ControlsTab.shortcuts[Preferences.indexToName("holdShortcut", BrowserTabsPanel.activeShortcutIndex ?? session?.shortcutIndex ?? 0)]?.shortcut.carbonModifierFlags.cleaned() ?? 0
         let shortcutModifiersCleaned = shortcut.carbonModifierFlags.cleaned()
         // The match decision (incl. the search-editing gate for modifier-only shortcuts like
         // previousWindow = ⇧) is a pure kernel so its branch order is unit-tested; see
@@ -56,7 +56,7 @@ class ATShortcut {
             holdModifiers: holdModifiersCleaned,
             isHoldShortcut: id.hasPrefix("holdShortcut"),
             isNextWindowShortcut: id.hasPrefix("nextWindowShortcut"),
-            sessionActive: session != nil,
+            sessionActive: session != nil || BrowserTabsPanel.activeShortcutIndex != nil,
             isModifierOnly: shortcut.keyCode == .none,
             isSearchEditing: TilesView.isSearchEditing,
             shortcutHasCommandModifier: (shortcutModifiersCleaned & (UInt32(cmdKey) | UInt32(controlKey))) != 0)
@@ -65,6 +65,9 @@ class ATShortcut {
     func shouldTrigger() -> Bool {
         let session = SwitcherSession.current
         if scope == .global {
+            if triggerPhase == .up, let browserIndex = BrowserTabsPanel.activeShortcutIndex {
+                return index == browserIndex && BrowserTabsPanel.switchesOnRelease
+            }
             if triggerPhase == .down, session == nil || index == nil || index == session?.shortcutIndex {
                 return true
             }
@@ -100,6 +103,14 @@ class ATShortcut {
     /// inside the matching loop, where the dictionary's iteration order decides the outcome: fired after
     /// `nextWindowShortcut` has cycled, the release commits one tile PAST what the user asked for.
     func settleLostRelease(_ recordedHoldRelease: Bool = false) {
+        if let browserIndex = BrowserTabsPanel.activeShortcutIndex {
+            guard BrowserTabsPanel.switchesOnRelease, id == Preferences.indexToName("holdShortcut", browserIndex) else { return }
+            let currentModifiers = cocoaToCarbonFlags(ModifierFlags.current)
+            guard currentModifiers & shortcut.carbonModifierFlags != shortcut.carbonModifierFlags || recordedHoldRelease else { return }
+            state = .up
+            ShortcutActions.execute(id)
+            return
+        }
         guard let session = SwitcherSession.current, !session.forceDoNothingOnRelease,
               Preferences.effectiveShortcutStyle(session.shortcutIndex) == .focusOnRelease,
               id == Preferences.indexToName("holdShortcut", session.shortcutIndex) else { return }

@@ -59,8 +59,8 @@ private func logKeyboardEvent(_ globalId: Int?, _ shortcutState: ShortcutState?,
 /// ping-pongs against a window the user never picked, seen live. Run again after the loop, for a session this
 /// very event opened with the modifier already back up.
 private func settleLostHoldRelease(_ recordedHoldRelease: Bool = false) {
-    guard let session = SwitcherSession.current else { return }
-    ControlsTab.shortcuts[Preferences.indexToName("holdShortcut", session.shortcutIndex)]?
+    guard let index = BrowserTabsPanel.activeShortcutIndex ?? SwitcherSession.current?.shortcutIndex else { return }
+    ControlsTab.shortcuts[Preferences.indexToName("holdShortcut", index)]?
         .settleLostRelease(recordedHoldRelease)
 }
 

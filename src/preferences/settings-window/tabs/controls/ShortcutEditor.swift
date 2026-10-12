@@ -16,6 +16,8 @@ final class ShortcutEditor {
     let view: NSView
 
     private let trigger: TriggerBinding
+    private let targetSelector: ShortcutBoundDropdown
+    private var browserPane: BrowserTabsShortcutPane?
     /// Panes are constructed lazily on first selection — only one is visible at a time, so
     /// building the other two upfront is pure cost (~30 controls each in the cascade walk).
     /// `bind(toShortcut:)` only re-binds panes that exist; the search index is populated with
@@ -58,6 +60,7 @@ final class ShortcutEditor {
     init(width: CGFloat) {
         editorWidth = width
         trigger = TriggerBinding()
+        targetSelector = ShortcutBoundDropdown(baseName: "switcherTarget", cases: SwitcherTargetPreference.allCases)
 
         // Populate the active SettingsSearchIndex with every pane's static strings — this is the
         // section-level search registration that lets queries match content in panes that haven't
@@ -71,6 +74,8 @@ final class ShortcutEditor {
         triggerTable.addRow(TableGroupView.Row(
             leftTitle: ShortcutEditor.triggerLabel,
             rightViews: [trigger.view]))
+        triggerTable.addRow(leftText: NSLocalizedString("Switch between", comment: ""), rightViews: [targetSelector])
+        SettingsSearchIndex.registerStrings(BrowserTabsShortcutPane.searchableStrings + SwitcherTargetPreference.allCases.map { $0.localizedString })
 
         let labels = [
             ShortcutEditor.tabLabelFiltering,
@@ -129,9 +134,12 @@ final class ShortcutEditor {
     func bind(toShortcut index: Int) {
         currentIndex = index
         trigger.bind(toShortcut: index)
+        targetSelector.bind(toShortcut: index)
+        browserPane?.bind(toShortcut: index)
         filteringPane?.bind(toShortcut: index)
         appearancePane?.bind(toShortcut: index)
         orderingPane?.bind(toShortcut: index)
+        ensurePaneBuilt(forSegment: Self.selectedTabSegment)
     }
 
     /// Re-display values without changing the bound index. Called when a global appearance pref
@@ -156,6 +164,22 @@ final class ShortcutEditor {
     }
 
     private func ensurePaneBuilt(forSegment segment: Int) {
+        let isBrowser = Preferences.switcherTarget(currentIndex) == .browserTabs
+        tabControl.isHidden = isBrowser
+        if isBrowser {
+            if browserPane == nil {
+                let pane = BrowserTabsShortcutPane(width: editorWidth)
+                pane.bind(toShortcut: currentIndex)
+                insertPaneBeforeBottomSpacer(pane.view)
+                browserPane = pane
+            }
+            browserPane?.view.isHidden = false
+            filteringPane?.view.isHidden = true
+            appearancePane?.view.isHidden = true
+            orderingPane?.view.isHidden = true
+            return
+        }
+        browserPane?.view.isHidden = true
         switch segment {
         case 0:
             if filteringPane == nil {
@@ -273,7 +297,8 @@ final class TriggerBinding {
         holdRecorder.objectValue = Preferences.shortcut(holdKey)
         nextRecorder.objectValue = Preferences.shortcut(nextKey)
         ControlsTab.shortcutControls[holdKey] = (holdRecorder, TriggerBinding.holdLabelText)
-        ControlsTab.shortcutControls[nextKey] = (nextRecorder, TriggerBinding.selectNextText)
+        let selectionLabel = Preferences.switcherTarget(index) == .browserTabs ? NSLocalizedString("Select next browser tab", comment: "") : TriggerBinding.selectNextText
+        ControlsTab.shortcutControls[nextKey] = (nextRecorder, selectionLabel)
         // Reapply modifier restriction on the next-window recorder based on the hold shortcut.
         if let holdModifiers = Preferences.shortcut(holdKey)?.modifierFlags {
             nextRecorder.restrictModifiers(holdModifiers)
@@ -485,6 +510,48 @@ final class AppearancePane {
         theme.bind(toShortcut: index)
         shortcutStyle.bind(toShortcut: index)
         preview.bind(toShortcut: index)
+    }
+}
+
+final class BrowserTabsShortcutPane {
+    static let releaseLabel = NSLocalizedString("After releasing modifiers", comment: "")
+    static let browsersLabel = NSLocalizedString("Browsers", comment: "")
+    static let searchableStrings = [releaseLabel, browsersLabel, NSLocalizedString("Browser tabs", comment: "")] +
+        TabReleaseBehaviorPreference.allCases.map { $0.localizedString } + TabBrowserScopePreference.allCases.map { $0.localizedString }
+    let view: NSView
+    private let release = ShortcutBoundDropdown(baseName: "tabReleaseBehavior", cases: TabReleaseBehaviorPreference.allCases)
+    private let browsers = ShortcutBoundDropdown(baseName: "tabBrowserScope", cases: TabBrowserScopePreference.allCases)
+    private let size: ShortcutOverrideSegmented
+    private let theme: ShortcutOverrideSegmented
+    private let explanation = NSTextField(wrappingLabelWithString: "")
+    init(width: CGFloat) {
+        let onChange = { AppearanceTab.refreshAllOverrideInfoLabels() }
+        size = ShortcutOverrideSegmented(baseName: "appearanceSizeOverride", cases: AppearanceSizePreference.allCases,
+            globalIndex: { Preferences.appearanceSize.index }, proGatedIndices: [], segmentWidth: 100,
+            attachBadge: nil, refreshBadge: nil, onChange: onChange)
+        theme = ShortcutOverrideSegmented(baseName: "appearanceThemeOverride", cases: AppearanceThemePreference.allCases,
+            globalIndex: { Preferences.appearanceTheme.index }, proGatedIndices: [], segmentWidth: 100,
+            attachBadge: nil, refreshBadge: nil, onChange: onChange)
+        let table = TableGroupView(width: width)
+        table.addRow(leftText: Self.releaseLabel, rightViews: [release])
+        table.addRow(leftText: Self.browsersLabel, rightViews: [browsers])
+        table.addRow(leftText: AppearanceTab.labelSize, rightViews: [size.segmented, size.unlink])
+        table.addRow(leftText: AppearanceTab.labelTheme, rightViews: [theme.segmented, theme.unlink])
+        explanation.font = .systemFont(ofSize: 12)
+        explanation.textColor = .secondaryLabelColor
+        explanation.maximumNumberOfLines = 0
+        explanation.widthAnchor.constraint(equalToConstant: width - TableGroupView.padding * 2).isActive = true
+        table.addRow(secondaryViews: [explanation], secondaryViewsAlignment: .leading)
+        view = table
+    }
+    func bind(toShortcut index: Int) {
+        release.bind(toShortcut: index)
+        browsers.bind(toShortcut: index)
+        size.bind(toShortcut: index)
+        theme.bind(toShortcut: index)
+        explanation.stringValue = Preferences.tabReleaseBehavior(index) == .keepOpen
+            ? NSLocalizedString("Press the shortcut to open browser tabs. Releasing its modifiers keeps the panel open. Use Tab or arrows to select, Return to switch, and Escape to close.", comment: "")
+            : NSLocalizedString("Hold the shortcut modifiers and press its key to cycle browser tabs. Release the modifiers or press Return to switch. Escape closes without switching.", comment: "")
     }
 }
 

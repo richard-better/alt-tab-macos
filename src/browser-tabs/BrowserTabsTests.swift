@@ -216,6 +216,97 @@ final class BrowserTabsTests: XCTestCase {
         panel.dismiss()
     }
 
+    func testModifierReleaseKeepsATabShortcutOpenWhenConfiguredToKeepOpen() {
+        _ = NSApplication.shared
+        Preferences.tabBehaviors[2] = .keepOpen
+        let collector = DeferredBrowserTabsCollector()
+        let started = expectation(description: "collection started")
+        collector.onCollect = { started.fulfill() }
+        let panel = BrowserTabsPanel(collector: collector)
+        defer { panel.dismiss(); Preferences.tabBehaviors.removeValue(forKey: 2) }
+        panel.present(shortcutIndex: 2)
+        wait(for: [started], timeout: 1)
+        collector.completion?(.success(BrowserTabsSnapshot(tabs: sampleTabs(), issues: [])))
+        ModifierFlags.current = []
+        panel.modifiersReleased()
+        XCTAssertTrue(panel.isVisible)
+        XCTAssertTrue(collector.activatedTabs.isEmpty)
+    }
+
+    func testModifierReleaseDuringCollectionCommitsTheNextTabWhenReady() {
+        _ = NSApplication.shared
+        Preferences.tabBehaviors[2] = .switchOnRelease
+        let collector = DeferredBrowserTabsCollector()
+        let started = expectation(description: "collection started")
+        collector.onCollect = { started.fulfill() }
+        let panel = BrowserTabsPanel(collector: collector)
+        defer { panel.dismiss(); Preferences.tabBehaviors.removeValue(forKey: 2) }
+        panel.present(shortcutIndex: 2)
+        wait(for: [started], timeout: 1)
+        ModifierFlags.current = []
+        ControlsTab.shortcutsActionsTriggered = []
+        handleKeyboardEvent(nil, nil, nil, [], false)
+        XCTAssertTrue(collector.activatedTabs.isEmpty)
+        collector.completion?(.success(BrowserTabsSnapshot(tabs: sampleTabs(), issues: [])))
+        XCTAssertEqual(collector.activatedTabs.map { $0.tabId }, ["tab-1"])
+        collector.activationCompletion?(.success(true))
+        XCTAssertFalse(panel.isVisible)
+        XCTAssertNil(BrowserTabsPanel.activeShortcutIndex)
+    }
+
+    func testRepeatedTabShortcutAdvancesWhileCollectionIsPending() {
+        _ = NSApplication.shared
+        Preferences.tabBehaviors[2] = .switchOnRelease
+        let collector = DeferredBrowserTabsCollector()
+        let started = expectation(description: "collection started")
+        collector.onCollect = { started.fulfill() }
+        let panel = BrowserTabsPanel(collector: collector)
+        defer { panel.dismiss(); Preferences.tabBehaviors.removeValue(forKey: 2) }
+        panel.present(shortcutIndex: 2)
+        wait(for: [started], timeout: 1)
+        panel.present(shortcutIndex: 2)
+        panel.modifiersReleased()
+        collector.completion?(.success(BrowserTabsSnapshot(tabs: sampleTabs(), issues: [])))
+        XCTAssertEqual(collector.activatedTabs.map { $0.tabId }, ["tab-2"])
+    }
+
+    func testBrowserScopeIsAppliedBeforeCollection() {
+        _ = NSApplication.shared
+        Preferences.tabScopes[2] = .chrome
+        let collector = DeferredBrowserTabsCollector()
+        let started = expectation(description: "collection started")
+        collector.onCollect = { started.fulfill() }
+        let panel = BrowserTabsPanel(collector: collector)
+        defer { panel.dismiss(); Preferences.tabScopes.removeValue(forKey: 2) }
+        panel.present(shortcutIndex: 2)
+        wait(for: [started], timeout: 1)
+        XCTAssertEqual(collector.requestedBrowsers, [.chrome])
+    }
+
+    func testMenuInvocationKeepsThePanelOpenEvenWhenTheShortcutSwitchesOnRelease() {
+        _ = NSApplication.shared
+        Preferences.tabBehaviors[0] = .switchOnRelease
+        let collector = DeferredBrowserTabsCollector()
+        let started = expectation(description: "collection started")
+        collector.onCollect = { started.fulfill() }
+        let panel = BrowserTabsPanel(collector: collector)
+        defer { panel.dismiss(); Preferences.tabBehaviors.removeValue(forKey: 0) }
+        panel.present()
+        wait(for: [started], timeout: 1)
+        collector.completion?(.success(BrowserTabsSnapshot(tabs: sampleTabs(), issues: [])))
+        panel.modifiersReleased()
+        XCTAssertTrue(panel.isVisible)
+        XCTAssertTrue(collector.activatedTabs.isEmpty)
+        XCTAssertNil(BrowserTabsPanel.activeShortcutIndex)
+    }
+
+    private func sampleTabs() -> [BrowserTab] {
+        (0..<3).map { index in
+            BrowserTab(browser: .chrome, processId: 200, windowId: "20", tabId: "tab-\(index)",
+                index: index + 1, title: "Tab \(index)", url: "https://example.test/\(index)", active: index == 0)
+        }
+    }
+
     private func findSearchField(_ view: NSView) -> LauncherSearchField? {
         if let search = view as? LauncherSearchField {
             return search
@@ -227,10 +318,17 @@ final class BrowserTabsTests: XCTestCase {
 private final class DeferredBrowserTabsCollector: BrowserTabsCollecting {
     var onCollect: (() -> Void)?
     var completion: ((Result<BrowserTabsSnapshot, Error>) -> Void)?
-    func collect(_ completion: @escaping (Result<BrowserTabsSnapshot, Error>) -> Void) {
+    var activationCompletion: ((Result<Bool, Error>) -> Void)?
+    var activatedTabs = [BrowserTab]()
+    var requestedBrowsers = Set<TabBrowser>()
+    func collect(browsers: Set<TabBrowser>, _ completion: @escaping (Result<BrowserTabsSnapshot, Error>) -> Void) {
+        requestedBrowsers = browsers
         self.completion = completion
         onCollect?()
     }
 
-    func activate(_: BrowserTab, completion _: @escaping (Result<Bool, Error>) -> Void) {}
+    func activate(_ tab: BrowserTab, completion: @escaping (Result<Bool, Error>) -> Void) {
+        activatedTabs.append(tab)
+        activationCompletion = completion
+    }
 }

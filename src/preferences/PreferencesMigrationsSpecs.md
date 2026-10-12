@@ -83,3 +83,6 @@ Mirrors `PreferencesMigrationsTests.swift` 1:1.
 
 ### P. Dropdowns: English text → indexes
 - **testDropdownTextValuesBecomeIndexes** — `appsToShow "Active app"` → `"1"`; `screensToShow "Screen showing AltTab"` → `"1"`.
+
+
+The fork imports its legacy browser-tab chord into the first new shortcut slot once. The hold modifiers and base key are stored as secure archives, and existing window shortcuts keep their keys and options. The new slot targets Browser tabs, includes Safari and Chrome, and keeps the panel open on release. Import is idempotent. If every slot is occupied, the legacy shortcut remains available until there is space. QA runs with pristine preferences skip this import.

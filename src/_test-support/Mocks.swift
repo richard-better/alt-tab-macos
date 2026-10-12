@@ -73,6 +73,7 @@ enum SettingsSearchIndex {
 
 class Appearance {
     static var titlesStyle = TitlesStyle(scale: .medium, isDark: true)
+    static func titlesStyle(for _: Int) -> TitlesStyle { titlesStyle }
     static var searchMatchHighlightColor: NSColor = .yellow
     static var searchMatchForegroundColor: NSColor = .black
 }
@@ -228,11 +229,15 @@ class ControlsTab {
 
 enum ShortcutActions {
     static func execute(_ id: String) {
+        if id.hasPrefix("holdShortcut"), BrowserTabsPanel.activeShortcutIndex == Preferences.nameToIndex(id) {
+            BrowserTabsPanel.releaseShortcutModifiers()
+        }
         ControlsTab.executeAction(id)
     }
 }
 
 class KeyRepeatTimer {
+    static func startRepeatingKeyNextWindow() {}
     static func stopTimerForRepeatingKey(_ shortcutName: String) {
     }
 }
@@ -245,6 +250,12 @@ class Logger {
 }
 
 class Preferences {
+    static var targets = [Int: SwitcherTargetPreference]()
+    static var tabBehaviors = [Int: TabReleaseBehaviorPreference]()
+    static var tabScopes = [Int: TabBrowserScopePreference]()
+    static func switcherTarget(_ index: Int) -> SwitcherTargetPreference { targets[index] ?? .windows }
+    static func tabReleaseBehavior(_ index: Int) -> TabReleaseBehaviorPreference { tabBehaviors[index] ?? .keepOpen }
+    static func tabBrowserScope(_ index: Int) -> TabBrowserScopePreference { tabScopes[index] ?? .all }
     static var shortcutStyle: ShortcutStylePreference = .focusOnRelease
     static var holdShortcut = ["⌥", "⌥", "⌥"]
     static let minShortcutCount = 1

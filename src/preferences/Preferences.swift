@@ -166,6 +166,20 @@ class Preferences {
         PreferencesMigrations.removeCorruptedPreferences()
         PreferencesMigrations.migratePreferences()
         registerDefaults()
+        migrateBrowserShortcutToSlot()
+    }
+
+    private static func migrateBrowserShortcutToSlot() {
+        #if DEBUG
+        guard !qaPristine else { return }
+        #endif
+        guard !UserDefaults.standard.bool(forKey: "browserShortcutMigrated"),
+              let legacy = shortcut("browserTabsShortcut") else { return }
+        let hold = Shortcut(code: .none, modifierFlags: legacy.modifierFlags, characters: nil, charactersIgnoringModifiers: nil)
+        let next = Shortcut(code: legacy.keyCode, modifierFlags: [], characters: legacy.characters, charactersIgnoringModifiers: legacy.charactersIgnoringModifiers)
+        PreferencesMigrations.migrateBrowserShortcutToSlot(holdStorage: shortcutStorage(hold, nil), nextStorage: shortcutStorage(next, nil))
+        invalidateAllCache()
+        CachedUserDefaults.cache.withLock { $0.removeAll() }
     }
 
     static func resetAll() {

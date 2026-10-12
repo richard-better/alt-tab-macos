@@ -25,14 +25,14 @@ class KeyRepeatTimer {
     }
 
     static func startRepeatingKeyNextWindow() {
-        let nextWindowShortcutName = Preferences.indexToName("nextWindowShortcut", SwitcherSession.current?.shortcutIndex ?? 0)
+        let nextWindowShortcutName = Preferences.indexToName("nextWindowShortcut", BrowserTabsPanel.activeShortcutIndex ?? SwitcherSession.current?.shortcutIndex ?? 0)
         if let shortcut = ControlsTab.shortcuts[nextWindowShortcutName],
            // Esc is delivered via the cghid event tap (#5585), which emits real OS key-repeats; an artificial
            // timer would never stop, because the absorbed keyDown gives Carbon no release event to pair with,
            // so it cycles selection to the very end (#5742). Same rationale as startRepeatingKeyPreviousWindow().
            shortcut.shortcut.carbonKeyCode != kVK_Escape {
             startTimerForRepeatingKey(shortcut) {
-                ShortcutActions.execute(Preferences.indexToName("nextWindowShortcut", SwitcherSession.current?.shortcutIndex ?? 0))
+                ShortcutActions.execute(Preferences.indexToName("nextWindowShortcut", BrowserTabsPanel.activeShortcutIndex ?? SwitcherSession.current?.shortcutIndex ?? 0))
             }
         }
     }
@@ -90,7 +90,7 @@ class KeyRepeatTimer {
             let now = ProcessInfo.processInfo.systemUptime
             if KeyRepeatTimerTestable.shouldApplyArtificialRepeat(now: now, firedAt: firedAt,
                 armedAt: armedAt, panelBecameVisibleAt: SwitcherSession.current?.panelBecameVisibleAt,
-                panelShownAt: SwitcherSession.current?.panelShownAt, initialDelay: currentInitialDelay,
+                panelShownAt: BrowserTabsPanel.activePanelShownAt ?? SwitcherSession.current?.panelShownAt, initialDelay: currentInitialDelay,
                 repeatRate: currentRepeatRate) {
                 block()
             } else {
@@ -120,8 +120,8 @@ class KeyRepeatTimer {
     /// Poll hardware modifier state to detect key release even when the event-based state update is delayed
     /// (e.g. when main thread is busy under CPU stress). Mirrors ATShortcut.redundantSafetyMeasures()
     private static func holdModifierIsReleased() -> Bool {
-        guard let session = SwitcherSession.current,
-              let holdShortcut = ControlsTab.shortcuts[Preferences.indexToName("holdShortcut", session.shortcutIndex)] else {
+        guard let index = BrowserTabsPanel.activeShortcutIndex ?? SwitcherSession.current?.shortcutIndex,
+              let holdShortcut = ControlsTab.shortcuts[Preferences.indexToName("holdShortcut", index)] else {
             return true
         }
         let currentModifiers = cocoaToCarbonFlags(ModifierFlags.current).cleaned()

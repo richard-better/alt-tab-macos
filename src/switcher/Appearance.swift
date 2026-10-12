@@ -77,8 +77,12 @@ class Appearance {
         return theme == .system ? NSAppearance.currentDrawing().getThemeName() : theme
     }
 
-    static var titlesStyle: TitlesStyle {
-        TitlesStyle(scale: titlesScale(currentSize), isDark: currentTheme == .dark)
+    static var titlesStyle: TitlesStyle { titlesStyle(for: SwitcherSession.activeShortcutIndex) }
+
+    static func titlesStyle(for index: Int) -> TitlesStyle {
+        let theme = Preferences.effectiveAppearanceTheme(index)
+        let dark = (theme == .system ? NSApp.effectiveAppearance.getThemeName() : theme) == .dark
+        return TitlesStyle(scale: titlesScale(Preferences.effectiveAppearanceSize(index)), isDark: dark)
     }
 
     private static func titlesScale(_ size: AppearanceSizePreference) -> TitlesStyle.Scale {

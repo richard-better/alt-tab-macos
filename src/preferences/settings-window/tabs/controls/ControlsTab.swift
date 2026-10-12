@@ -68,7 +68,7 @@ class ControlsTab {
         "hideShowAppShortcut": NSLocalizedString("Hide/Show app", comment: ""),
     ]
     private static let removableShortcutPreferences = [
-        "holdShortcut", "nextWindowShortcut",
+        "holdShortcut", "nextWindowShortcut", "switcherTarget", "tabReleaseBehavior", "tabBrowserScope",
         "appsToShow", "spacesToShow", "screensToShow",
         "showMinimizedWindows", "showHiddenWindows", "showFullscreenWindows", "showWindowlessApps",
         "windowOrder", "shortcutStyle",
@@ -181,6 +181,9 @@ class ControlsTab {
             refreshShortcutUi()
         case "nextWindowGesture":
             refreshGestureRow()
+        case let k where k.hasPrefix("switcherTarget") || k.hasPrefix("tabReleaseBehavior") || k.hasPrefix("tabBrowserScope"):
+            if Preferences.nameToIndex(k) == selectedShortcutIndex { editor?.refreshFromCurrentBind() }
+            refreshShortcutRows()
         case let k where isShortcutPreferenceKey(k):
             let i = Preferences.nameToIndex(k)
             if i < Preferences.shortcutCount {
@@ -486,7 +489,7 @@ class ControlsTab {
             let row = shortcutRows[index]
             row.setContent(shortcutTitle(index), shortcutSummary(index))
             row.setSelected(index == selectedShortcutIndex && selectedShortcutIndex != gestureSelectionIndex)
-            row.setProBadge(index >= 1)
+            row.setProBadge(index >= 1 && Preferences.switcherTarget(index) == .windows)
             rows.addArrangedSubview(row)
             // Re-create the row↔stack width constraint each layout: AppKit drops it when the row is
             // removed from the stack by `clearArrangedSubviews`. The row's height constraint is
@@ -614,7 +617,7 @@ class ControlsTab {
     // MARK: - Shortcut row content (title + summary)
 
     private static func shortcutTitle(_ index: Int) -> String {
-        return NSLocalizedString("Shortcut", comment: "") + " " + String(index + 1)
+        return Preferences.switcherTarget(index).localizedString + " " + String(index + 1)
     }
 
     private static func shortcutSummary(_ index: Int) -> String {
@@ -932,6 +935,10 @@ class ControlsTab {
     }
 
     private static func applyShortcutPreference(_ controlId: String) {
+        if controlId == "browserTabsShortcut", CachedUserDefaults.bool("browserShortcutMigrated") {
+            removeShortcutIfExists(controlId)
+            return
+        }
         if isShortcutPreferenceKey(controlId) && Preferences.nameToIndex(controlId) >= Preferences.shortcutCount {
             removeShortcutIfExists(controlId)
             return

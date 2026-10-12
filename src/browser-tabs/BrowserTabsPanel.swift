@@ -3,6 +3,20 @@ import Cocoa
 
 final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegate, NSTextFieldDelegate,
     NSWindowDelegate {
+    private static weak var activePanel: BrowserTabsPanel?
+    static var activeShortcutIndex: Int? { activePanel?.isVisible == true ? activePanel?.invocationIndex : nil }
+    static var activePanelShownAt: TimeInterval? { activePanel?.isVisible == true ? activePanel?.shownAt : nil }
+    static var switchesOnRelease: Bool { activePanel?.releaseBehavior == .switchOnRelease }
+    static func releaseShortcutModifiers() { activePanel?.modifiersReleased() }
+    private var invocationIndex: Int?
+    private var configurationIndex = 0
+    private var releaseBehavior = TabReleaseBehaviorPreference.keepOpen
+    private var browserScope = Set(TabBrowser.allCases)
+    private var commitAfterCollection = false
+    private var initialSelectionNeeded = false
+    private var initialAdvance = 0
+    private var frontmostBrowserPid: Int32?
+    private var shownAt: TimeInterval?
     private(set) static var instance: BrowserTabsPanel?
     private static var shared: BrowserTabsPanel {
         if let instance {
@@ -82,11 +96,32 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
         shared.present()
     }
 
-    func present() {
-        if isVisible {
-            moveSelection(1)
+    static func showShortcut(_ index: Int) {
+        App.hideUi()
+        shared.present(shortcutIndex: index)
+        KeyRepeatTimer.startRepeatingKeyNextWindow()
+    }
+
+    func present(shortcutIndex: Int? = nil) {
+        if isVisible, invocationIndex == shortcutIndex {
+            if rows.isEmpty { initialAdvance += 1 } else { moveSelection(1) }
             return
         }
+        if isVisible { dismiss() }
+        invocationIndex = shortcutIndex
+        configurationIndex = shortcutIndex ?? (0..<Preferences.shortcutCount).first { Preferences.switcherTarget($0) == .browserTabs } ?? 0
+        releaseBehavior = shortcutIndex.map { Preferences.tabReleaseBehavior($0) } ?? .keepOpen
+        let newScope = Preferences.tabBrowserScope(configurationIndex).browsers
+        if newScope != browserScope {
+            snapshot = BrowserTabsSnapshot(tabs: [], issues: [])
+            rows.removeAll()
+        }
+        browserScope = newScope
+        commitAfterCollection = false
+        initialSelectionNeeded = true
+        initialAdvance = releaseBehavior == .switchOnRelease ? 1 : 0
+        frontmostBrowserPid = NSWorkspace.shared.frontmostApplication?.processIdentifier
+        Self.activePanel = self
         generation += 1
         let ticket = generation
         header.isHidden = false
@@ -96,6 +131,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
         applyAppearance()
         center()
         makeKeyAndOrderFront(nil)
+        shownAt = snapshot.tabs.isEmpty ? .infinity : ProcessInfo.processInfo.systemUptime
         DispatchQueue.main.async { [weak self] in
             guard let self, isVisible, generation == ticket else { return }
             search.stringValue = ""
@@ -109,7 +145,19 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
         guard isVisible else { return }
         generation += 1
         activating = false
+        commitAfterCollection = false
+        if let invocationIndex { KeyRepeatTimer.stopTimerForRepeatingKey(Preferences.indexToName("nextWindowShortcut", invocationIndex)) }
+        if Self.activePanel === self { Self.activePanel = nil }
         orderOut(nil)
+    }
+
+    func modifiersReleased() {
+        guard isVisible, releaseBehavior == .switchOnRelease, !activating else { return }
+        if collecting {
+            commitAfterCollection = true
+        } else if snapshot.issues.isEmpty {
+            activateSelection()
+        }
     }
 
     func windowShouldClose(_: NSWindow) -> Bool {
@@ -127,7 +175,8 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
             refresh()
             return nil
         }
-        guard event.type == .keyDown, !event.modifierFlags.contains(.command) else { return event }
+        guard event.type == .keyDown else { return event }
+        if (search.currentEditor() as? NSTextView)?.hasMarkedText() == true { return event }
         switch Int(event.keyCode) {
         case kVK_Tab: moveSelection(event.modifierFlags.contains(.shift) ? -1 : 1)
         case kVK_UpArrow: moveSelection(-1)
@@ -173,7 +222,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
     }
 
     private func applyAppearance() {
-        style = Appearance.titlesStyle
+        style = Appearance.titlesStyle(for: configurationIndex)
         appearance = style.appearance
         table.rowHeight = style.rowHeight
         if background == nil {
@@ -316,7 +365,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
         status.isHidden = false
         updatePanelSize()
         let ticket = generation
-        collector.collect { [weak self] result in
+        collector.collect(browsers: browserScope) { [weak self] result in
             guard let self else { return }
             collecting = false
             refreshButton.isEnabled = true
@@ -328,8 +377,14 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
             switch result {
             case let .success(snapshot):
                 self.snapshot = snapshot
+                if !snapshot.tabs.isEmpty, shownAt == .infinity { shownAt = ProcessInfo.processInfo.systemUptime }
                 filterRows()
+                if commitAfterCollection {
+                    commitAfterCollection = false
+                    if snapshot.issues.isEmpty { activateSelection() }
+                }
             case .failure:
+                commitAfterCollection = false
                 status.isHidden = false
                 header.isHidden = false
                 footer.isHidden = false
@@ -350,12 +405,15 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
     }
 
     private func filterRows() {
-        let selected = rows.indices.contains(table.selectedRow) ? rows[table.selectedRow].identity : nil
+        let selected = !initialSelectionNeeded && rows.indices.contains(table.selectedRow) ? rows[table.selectedRow].identity : nil
         rows = snapshot.tabs.filter { $0.matches(search.stringValue) }
         updatePanelSize()
         table.reloadData()
         if !rows.isEmpty {
-            let index = selected.flatMap { id in rows.firstIndex { $0.identity == id } } ?? 0
+            let activeIndex = rows.firstIndex { $0.active && $0.processId == frontmostBrowserPid } ?? rows.firstIndex { $0.active } ?? -1
+            let initialIndex = initialSelectionNeeded && releaseBehavior == .switchOnRelease ? (activeIndex + initialAdvance + rows.count) % rows.count : 0
+            let index = selected.flatMap { id in rows.firstIndex { $0.identity == id } } ?? initialIndex
+            initialSelectionNeeded = false
             table.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
         }
         launcherFooter.button.isEnabled = !rows.isEmpty && !collecting
