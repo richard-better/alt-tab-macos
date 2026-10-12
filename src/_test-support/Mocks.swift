@@ -148,6 +148,7 @@ class App {
     }
     static let app = AppMock()
     static let bundleIdentifier = "me.richardb.window-switcher"
+    static func hideUi() {}
 }
 
 class TilesPanel {

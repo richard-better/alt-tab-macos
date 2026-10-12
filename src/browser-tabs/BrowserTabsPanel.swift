@@ -13,7 +13,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
         return panel
     }
 
-    private let collector = BrowserTabsCollector()
+    private let collector: BrowserTabsCollecting
     private let search = NSSearchField()
     private let table = NSTableView()
     private let status = NSTextField(wrappingLabelWithString: "")
@@ -40,7 +40,8 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
         false
     }
 
-    private init() {
+    init(collector: BrowserTabsCollecting = BrowserTabsCollector()) {
+        self.collector = collector
         super.init(
             contentRect: NSRect(x: 0, y: 0, width: 680, height: 500),
             styleMask: [.titled, .closable, .nonactivatingPanel],
@@ -50,7 +51,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
         title = NSLocalizedString("Browser tabs", comment: "")
         isReleasedWhenClosed = false
         isFloatingPanel = true
-        hidesOnDeactivate = true
+        hidesOnDeactivate = false
         collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary, .transient, .ignoresCycle]
         delegate = self
         buildContent()
@@ -97,6 +98,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
     }
 
     func windowDidResignKey(_: Notification) {
+        guard !collecting, !activating else { return }
         dismiss()
     }
 
@@ -228,7 +230,14 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
                     comment: ""
                 )
             }
+            restoreFocusAfterOperation()
         }
+    }
+
+    private func restoreFocusAfterOperation() {
+        guard isVisible, !isKeyWindow else { return }
+        makeKeyAndOrderFront(nil)
+        makeFirstResponder(search)
     }
 
     private func filterRows() {
@@ -285,6 +294,7 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
                 )
             case let .failure(error): status.stringValue = error.localizedDescription
             }
+            restoreFocusAfterOperation()
         }
     }
 

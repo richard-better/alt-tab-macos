@@ -1,3 +1,4 @@
+import Cocoa
 import JavaScriptCore
 import XCTest
 
@@ -126,4 +127,75 @@ final class BrowserTabsTests: XCTestCase {
         XCTAssertTrue(tab.matches("   "))
         XCTAssertFalse(tab.matches("chrome missing"))
     }
+
+    func testConsentCompletesBeforeStartingScriptAndDeniedBrowserPreservesOtherTabs() throws {
+        var steps = [String]()
+        let targets = [BrowserTabsTarget(browser: .safari, processId: 100),
+                       BrowserTabsTarget(browser: .chrome, processId: 200)]
+        let snapshot = try BrowserTabsCollector.collectSnapshot(targets, requestPermission: { target in
+            steps.append(target.browser.name)
+            return target.browser == .safari ? -1743 : 0
+        }, executeScript: { script in
+            XCTAssertEqual(steps, ["Safari", "Chrome"])
+            XCTAssertFalse(script.contains("com.apple.Safari\""))
+            let (json, _) = try self.evaluate(script)
+            return Data(json.utf8)
+        })
+        XCTAssertEqual(snapshot.tabs.map(\.browser), [.chrome, .chrome])
+        XCTAssertEqual(snapshot.issues, [BrowserTabsIssue(browser: .safari, code: -1743)])
+    }
+
+    func testDeniedConsentDoesNotStartScript() throws {
+        let snapshot = try BrowserTabsCollector.collectSnapshot(
+            [BrowserTabsTarget(browser: .chrome, processId: 200)],
+            requestPermission: { _ in -1743 },
+            executeScript: { _ in
+                XCTFail("A denied browser must not start the timed script")
+                return Data()
+            }
+        )
+        XCTAssertTrue(snapshot.tabs.isEmpty)
+        XCTAssertEqual(snapshot.issues, [BrowserTabsIssue(browser: .chrome, code: -1743)])
+    }
+
+    func testPermissionDialogFocusLossKeepsPanelOpenUntilCollectionFinishes() {
+        _ = NSApplication.shared
+        let collector = DeferredBrowserTabsCollector()
+        let started = expectation(description: "collection started")
+        collector.onCollect = { started.fulfill() }
+        let panel = BrowserTabsPanel(collector: collector)
+        panel.present()
+        wait(for: [started], timeout: 1)
+        panel.windowDidResignKey(Notification(name: NSWindow.didResignKeyNotification, object: panel))
+        XCTAssertTrue(panel.isVisible)
+        XCTAssertFalse(panel.hidesOnDeactivate)
+        collector.completion?(.success(BrowserTabsSnapshot(tabs: [], issues: [])))
+        XCTAssertTrue(panel.isVisible)
+        panel.windowDidResignKey(Notification(name: NSWindow.didResignKeyNotification, object: panel))
+        XCTAssertFalse(panel.isVisible)
+    }
+
+    func testDismissDuringConsentDoesNotReopenPanelWhenCollectionFinishes() {
+        _ = NSApplication.shared
+        let collector = DeferredBrowserTabsCollector()
+        let started = expectation(description: "collection started")
+        collector.onCollect = { started.fulfill() }
+        let panel = BrowserTabsPanel(collector: collector)
+        panel.present()
+        wait(for: [started], timeout: 1)
+        panel.dismiss()
+        collector.completion?(.success(BrowserTabsSnapshot(tabs: [], issues: [])))
+        XCTAssertFalse(panel.isVisible)
+    }
+}
+
+private final class DeferredBrowserTabsCollector: BrowserTabsCollecting {
+    var onCollect: (() -> Void)?
+    var completion: ((Result<BrowserTabsSnapshot, Error>) -> Void)?
+    func collect(_ completion: @escaping (Result<BrowserTabsSnapshot, Error>) -> Void) {
+        self.completion = completion
+        onCollect?()
+    }
+
+    func activate(_: BrowserTab, completion _: @escaping (Result<Bool, Error>) -> Void) {}
 }
