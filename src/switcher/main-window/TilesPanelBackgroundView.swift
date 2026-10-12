@@ -81,13 +81,23 @@ enum LiquidGlass {
     }
 }
 
+extension LauncherBackgroundView: EffectView {
+    var hostView: NSView { self }
+    func updateAppearance(cornerRadius: CGFloat) {
+        layer?.cornerRadius = cornerRadius
+        TitlesStyle.applyScrim(self, isDark: Appearance.currentTheme == .dark)
+    }
+}
+
 enum EffectViewKind {
+    case launcher
     case frosted
     case liquidGlassRegular
     case liquidGlassClear
 }
 
 func requiredEffectViewKind() -> EffectViewKind {
+    if Preferences.effectiveAppearanceStyle(SwitcherSession.activeShortcutIndex) == .titles { return .launcher }
     if #available(macOS 26.0, *) {
         if Preferences.effectiveAppearanceStyle(SwitcherSession.activeShortcutIndex) == .appIcons,
            LiquidGlass.canUsePrivateLook {
@@ -110,6 +120,7 @@ private func makeGlassEffectView(clear: Bool) -> NSGlassEffectView {
 }
 
 func makeEffectView(for kind: EffectViewKind) -> EffectView {
+    if kind == .launcher { return LauncherBackgroundView(isDark: Appearance.currentTheme == .dark) }
     if #available(macOS 26.0, *) {
         switch kind {
             case .liquidGlassClear:
@@ -122,7 +133,7 @@ func makeEffectView(for kind: EffectViewKind) -> EffectView {
                     }
                 }
                 return makeGlassEffectView(clear: false)
-            case .frosted:
+            case .launcher, .frosted:
                 break
         }
     }

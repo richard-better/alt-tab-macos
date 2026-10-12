@@ -22,8 +22,7 @@ func caTransaction(_ body: () -> Void) {
 
 extension NSAppearance {
     func getThemeName() -> AppearanceThemePreference {
-        let appearance = NSApp.effectiveAppearance.name
-        return appearance == .darkAqua || appearance == .vibrantDark ? .dark : .light
+        NSApp.effectiveAppearance.bestMatch(from: [.darkAqua, .aqua]) == .darkAqua ? .dark : .light
     }
 
     /// Whether *this* appearance is a dark one (unlike `getThemeName()`, which always reads

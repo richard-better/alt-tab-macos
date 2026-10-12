@@ -14,7 +14,13 @@ class TilesView {
     static var contentView: EffectView!
     static var currentEffectViewKind: EffectViewKind?
     private static var cachedEffectViews: [EffectViewKind: EffectView] = [:]
-    static var searchField = NSSearchField(frame: NSRect(x: 0, y: 0, width: 320, height: 30))
+    private static let nativeSearchField = NSSearchField(frame: NSRect(x: 0, y: 0, width: 320, height: 30))
+    private static let launcherSearchField = LauncherSearchField(frame: .zero)
+    private static let searchIcon = TitlesStyle.makeSearchIcon()
+    static var searchField: NSTextField { usesLauncherStyle ? launcherSearchField : nativeSearchField }
+    private static let launcherFooter = LauncherFooterView()
+    private static var usesLauncherStyle: Bool { Preferences.effectiveAppearanceStyle(SwitcherSession.activeShortcutIndex) == .titles }
+    private static var showsSearchHeader: Bool { usesLauncherStyle || searchMode != .off }
     static var noWindowLabel = NSTextField(labelWithString: NSLocalizedString("No Window", comment: ""))
     private(set) static var searchMode: SearchMode = .off
     static var rows = [[TileView]]()
@@ -190,17 +196,25 @@ class TilesView {
     }
 
     private static func configureSearchField() {
-        searchField.applySearchStyle()
-        searchField.usesSingleLineMode = true
-        searchField.target = Self.self
-        searchField.action = #selector(Self.searchFieldChanged(_:))
-        NotificationCenter.default.addObserver(forName: NSControl.textDidChangeNotification, object: searchField, queue: .main) { _ in
-            updateSearchQuery(searchField.stringValue)
+        nativeSearchField.applySearchStyle()
+        launcherSearchField.beginEditing = { if usesLauncherStyle { enableSearchEditing() } }
+        launcherFooter.button.title = NSLocalizedString("Switch  ↵", comment: "")
+        launcherFooter.button.target = Self.self
+        launcherFooter.button.action = #selector(switchToSelectedWindow)
+        for field in [nativeSearchField, launcherSearchField] as [NSTextField] {
+            field.usesSingleLineMode = true
+            field.target = Self.self
+            field.action = #selector(Self.searchFieldChanged(_:))
+            NotificationCenter.default.addObserver(forName: NSControl.textDidChangeNotification, object: field, queue: .main) { _ in
+                updateSearchQuery(field.stringValue)
+            }
         }
         updateSearchFieldEditability()
     }
 
-    @objc private static func searchFieldChanged(_ sender: NSSearchField) {
+    @objc private static func switchToSelectedWindow() { App.focusTarget() }
+
+    @objc private static func searchFieldChanged(_ sender: NSTextField) {
         updateSearchQuery(sender.stringValue)
     }
 
@@ -322,7 +336,7 @@ class TilesView {
         let host = contentView.hostView
         scrollView?.removeFromSuperview()
         scrollView = ScrollView()
-        if searchMode != .off {
+        if showsSearchHeader {
             host.addSubview(searchField)
         } else {
             searchField.removeFromSuperview()
@@ -494,7 +508,12 @@ class TilesView {
     }
 
     private static func resolveAutoSize(_ widthMax: CGFloat) {
-        let searchReservedHeight: CGFloat = searchMode == .off ? 0 : searchBarHeight() + 10
+        if usesLauncherStyle {
+            Appearance.applySize(.medium)
+            Self.updateCachedSizes()
+            return
+        }
+        let searchReservedHeight: CGFloat = usesLauncherStyle ? TitlesStyle.listTop + TitlesStyle.footerHeight : searchMode == .off ? 0 : searchBarHeight() + 10
         let heightMax = max(0, TilesPanel.maxThumbnailsHeight() - searchReservedHeight)
         _ = TileGridLayout.firstSizeThatFits([AppearanceSizePreference.large, .medium, .small], heightMax: heightMax) { size in
             Appearance.applySize(size)
@@ -570,6 +589,19 @@ class TilesView {
     }
 
     private static func layoutParentViews(_ maxX: CGFloat, _ widthMax: CGFloat, _ maxY: CGFloat, _ labelHeight: CGFloat) {
+        if usesLauncherStyle {
+            layoutLauncherParentViews(widthMax, maxY)
+            return
+        }
+        launcherFooter.removeFromSuperview()
+        TitlesStyle.hideScrim(contentView.hostView)
+        searchIcon.removeFromSuperview()
+        launcherSearchField.removeFromSuperview()
+        searchField.isBezeled = true
+        searchField.drawsBackground = true
+        searchField.font = .systemFont(ofSize: 13)
+        searchField.focusRingType = .default
+        nativeSearchField.applySearchStyle()
         let searchBarHeight = searchBarHeight()
         let searchBottomPadding = CGFloat(10)
         let searchReservedHeight = searchMode == .off ? 0 : searchBarHeight + searchBottomPadding
@@ -624,6 +656,37 @@ class TilesView {
             let labelX = originX + (TilesView.thumbnailsWidth - noWindowLabel.frame.width) * 0.5
             let labelY = scrollView.frame.origin.y + (scrollView.frame.height - noWindowLabel.frame.height) * 0.5
             noWindowLabel.frame.origin = CGPoint(x: labelX, y: labelY)
+        }
+    }
+
+    private static func layoutLauncherParentViews(_ widthMax: CGFloat, _ maxY: CGFloat) {
+        let width = min(widthMax, TitlesStyle.panelWidth - Appearance.windowPadding * 2)
+        let height = min(TitlesStyle.panelHeight, NSScreen.preferred.visibleFrame.height * 0.8)
+        let contentHeight = max(0, height - Appearance.windowPadding * 2 - TitlesStyle.listTop - TitlesStyle.footerHeight)
+        thumbnailsWidth = width
+        thumbnailsHeight = contentHeight
+        contentView.frame.size = NSSize(width: width + Appearance.windowPadding * 2, height: height)
+        let host = contentView.hostView
+        host.frame = contentView.bounds
+        TitlesStyle.applyScrim(host, isDark: Appearance.currentTheme == .dark)
+        for view in [searchField, searchIcon, launcherFooter] as [NSView] {
+            if view.superview !== host { host.addSubview(view) }
+        }
+        nativeSearchField.removeFromSuperview()
+        launcherSearchField.applyLauncherStyle(placeholder: NSLocalizedString("Search windows…", comment: ""))
+        searchIcon.frame = NSRect(x: 16, y: height - TitlesStyle.headerHeight + 22, width: 22, height: 22)
+        searchField.frame = NSRect(x: 50, y: height - TitlesStyle.headerHeight + 10, width: width - 50, height: 44)
+        launcherFooter.frame = NSRect(x: Appearance.windowPadding, y: Appearance.windowPadding, width: width, height: TitlesStyle.footerHeight)
+        launcherFooter.button.isEnabled = maxY > 0
+        scrollView.frame = NSRect(x: Appearance.windowPadding, y: TitlesStyle.footerHeight + Appearance.windowPadding, width: width, height: contentHeight)
+        scrollView.contentView.frame.size = scrollView.frame.size
+        scrollView.documentView!.frame.size = NSSize(width: width, height: maxY)
+        thumbnailOverView.frame = scrollView.documentView!.bounds
+        thumbnailUnderLayer.frame = thumbnailOverView.frame
+        noWindowLabel.isHidden = maxY > 0
+        if maxY == 0 {
+            noWindowLabel.sizeToFit()
+            noWindowLabel.frame.origin = NSPoint(x: (contentView.frame.width - noWindowLabel.frame.width) / 2, y: height / 2)
         }
     }
 

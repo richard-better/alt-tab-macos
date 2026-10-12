@@ -20,7 +20,9 @@ class Appearance {
     static let maxHeightOnScreen = CGFloat(0.8)
     static let interCellPadding = CGFloat(1)
     static let intraCellPadding = CGFloat(5)
-    static let appIconLabelSpacing = CGFloat(2)
+    static var appIconLabelSpacing: CGFloat {
+        currentStyle == .titles ? TitlesStyle.iconLabelSpacing : 2
+    }
 
     // theme
     static var fontColor = NSColor.red
@@ -30,15 +32,46 @@ class Appearance {
 
     // theme: constants
     static var enablePanelShadow = true
-    static var highlightFocusedBackgroundColor: NSColor { get { TitlesStyle.selectionBackground } }
-    static var highlightHoveredBackgroundColor: NSColor { get { NSColor.systemAccentColor.withAlphaComponent(0.1) } }
-    static var highlightFocusedBorderColor: NSColor { get { TitlesStyle.selectionBorder } }
-    static var highlightHoveredBorderColor: NSColor { get { NSColor.systemAccentColor.withAlphaComponent(0.7) } }
-    static var searchMatchHighlightColor: NSColor { get { NSColor.systemYellow.withAlphaComponent(0.5) } }
-    static var searchMatchForegroundColor: NSColor { get { NSColor(calibratedWhite: 0.12, alpha: 1) } }
+    static var highlightFocusedBackgroundColor: NSColor {
+        currentStyle == .titles
+            ? TitlesStyle.selectionBackground
+            : NSColor.systemAccentColor.withAlphaComponent(0.2)
+    }
 
-    private static var currentStyle: AppearanceStylePreference { Preferences.effectiveAppearanceStyle(SwitcherSession.activeShortcutIndex) }
-    private static var currentSize: AppearanceSizePreference { Preferences.effectiveAppearanceSize(SwitcherSession.activeShortcutIndex) }
+    static var highlightHoveredBackgroundColor: NSColor {
+        currentStyle == .titles
+            ? TitlesStyle.selectionBackground.withAlphaComponent(0.5)
+            : NSColor.systemAccentColor.withAlphaComponent(0.1)
+    }
+
+    static var highlightFocusedBorderColor: NSColor {
+        currentStyle == .titles
+            ? .clear
+            : NSColor.systemAccentColor
+    }
+
+    static var highlightHoveredBorderColor: NSColor {
+        currentStyle == .titles
+            ? .clear
+            : NSColor.systemAccentColor.withAlphaComponent(0.7)
+    }
+
+    static var searchMatchHighlightColor: NSColor {
+        NSColor.systemYellow.withAlphaComponent(0.5)
+    }
+
+    static var searchMatchForegroundColor: NSColor {
+        NSColor(calibratedWhite: 0.12, alpha: 1)
+    }
+
+    private static var currentStyle: AppearanceStylePreference {
+        Preferences.effectiveAppearanceStyle(SwitcherSession.activeShortcutIndex)
+    }
+
+    private static var currentSize: AppearanceSizePreference {
+        Preferences.effectiveAppearanceSize(SwitcherSession.activeShortcutIndex)
+    }
+
     static var currentTheme: AppearanceThemePreference {
         let theme = Preferences.effectiveAppearanceTheme(SwitcherSession.activeShortcutIndex)
         return theme == .system ? NSAppearance.currentDrawing().getThemeName() : theme
@@ -52,7 +85,8 @@ class Appearance {
         switch size {
         case .small: return .small
         case .medium: return .medium
-        case .large, .auto: return .large
+        case .large: return .large
+        case .auto: return .medium
         }
     }
 
@@ -127,8 +161,12 @@ class Appearance {
                 iconSize = 28
                 fontHeight = 16
         }
-        let tilesPanelRatio = (NSScreen.preferred.frame.width * maxWidthOnScreen) / (NSScreen.preferred.frame.height * maxHeightOnScreen)
-        (windowMinWidthInRow, windowMaxWidthInRow) = AppearanceTestable.goodValuesForThumbnailsWidthMinMax(tilesPanelRatio, rowsCount)
+        let tilesPanelRatio = (NSScreen.preferred.frame.width * maxWidthOnScreen) /
+            (NSScreen.preferred.frame.height * maxHeightOnScreen)
+        (windowMinWidthInRow, windowMaxWidthInRow) = AppearanceTestable.goodValuesForThumbnailsWidthMinMax(
+            tilesPanelRatio,
+            rowsCount
+        )
     }
 
     private static func appIconsSize(_ size: AppearanceSizePreference) {
@@ -176,8 +214,8 @@ class Appearance {
         windowCornerRadius = TitlesStyle.windowCornerRadius
         cellCornerRadius = TitlesStyle.rowCornerRadius
         edgeInsetsSize = TitlesStyle.rowPadding
-        windowMinWidthInRow = 0.6
-        windowMaxWidthInRow = 0.9
+        windowMinWidthInRow = 1
+        windowMaxWidthInRow = 1
         rowsCount = 1
         iconSize = style.iconSize
         fontHeight = style.fontSize
@@ -185,7 +223,9 @@ class Appearance {
 
     private static func updateFont() {
         if #available(macOS 26.0, *) {
-            font = NSFont.systemFont(ofSize: fontHeight, weight: currentStyle == .appIcons ? .semibold : .medium)
+            font = NSFont.systemFont(ofSize: fontHeight, weight: currentStyle == .appIcons
+                ? .semibold
+                : currentStyle == .titles ? .regular : .medium)
         } else {
             font = NSFont.systemFont(ofSize: fontHeight)
         }

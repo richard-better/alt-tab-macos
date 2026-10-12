@@ -1,3 +1,4 @@
+import Carbon.HIToolbox.Events
 import Cocoa
 import JavaScriptCore
 import XCTest
@@ -186,6 +187,40 @@ final class BrowserTabsTests: XCTestCase {
         panel.dismiss()
         collector.completion?(.success(BrowserTabsSnapshot(tabs: [], issues: [])))
         XCTAssertFalse(panel.isVisible)
+    }
+
+    func testLauncherSearchIsVisibleAndFiltersTabs() throws {
+        _ = NSApplication.shared
+        let collector = DeferredBrowserTabsCollector()
+        let started = expectation(description: "collection started")
+        collector.onCollect = { started.fulfill() }
+        let panel = BrowserTabsPanel(collector: collector)
+        panel.present()
+        wait(for: [started], timeout: 1)
+        let tabs = ["Zebra notes", "Account"].enumerated().map { offset, title in
+            BrowserTab(browser: .chrome, processId: 200, windowId: "20", tabId: String(offset),
+                       index: offset + 1, title: title, url: "https://example.test", active: false)
+        }
+        collector.completion?(.success(BrowserTabsSnapshot(tabs: tabs, issues: [])))
+        let search = try XCTUnwrap(try findSearchField(XCTUnwrap(panel.contentView)))
+        XCTAssertFalse(search.isHiddenOrHasHiddenAncestor)
+        XCTAssertFalse(search.isBezeled)
+        XCTAssertTrue(search.isEditable)
+        XCTAssertTrue(search.isSelectable)
+        XCTAssertEqual(panel.numberOfRows(in: NSTableView()), 2)
+        search.stringValue = "z"
+        panel.controlTextDidChange(Notification(name: NSControl.textDidChangeNotification, object: search))
+        XCTAssertFalse(search.isHiddenOrHasHiddenAncestor)
+        XCTAssertEqual(search.stringValue, "z")
+        XCTAssertEqual(panel.numberOfRows(in: NSTableView()), 1)
+        panel.dismiss()
+    }
+
+    private func findSearchField(_ view: NSView) -> LauncherSearchField? {
+        if let search = view as? LauncherSearchField {
+            return search
+        }
+        return view.subviews.compactMap { findSearchField($0) }.first
     }
 }
 

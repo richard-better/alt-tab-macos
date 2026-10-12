@@ -36,3 +36,5 @@ Mirrors `AppearanceTests.swift` 1:1.
 - **testThumbnailPlaceholderReservesKnownWindowGeometryWhileCaptureIsAvailable** — a newly discovered window reserves its final aspect ratio while its first capture is in flight, so replacing the app-icon placeholder does not resize the switcher.
 - **testThumbnailPlaceholderUsesIconGeometryWithoutScreenRecording** — an icon-only tile stays square when no window capture can arrive.
 - **testThumbnailPlaceholderUsesIconGeometryWithoutValidWindowSize** — unknown or invalid window geometry falls back to the app icon.
+
+The fork's Titles appearance shares its launcher chrome with browser tabs. The frame is capped at 750 by 475 points and shrinks to fit smaller screens. A visible borderless search header and a footer action labeled Switch reserve their own space above and below the scrolling list. Recycled title rows use neutral rounded selection, regular text, and a trailing app name. Thumbnails and App Icons retain their own layout and accent selection. Neither panel shows a redundant section subtitle or item count. Search mode and modifier-release behavior follow the existing shortcut configuration.

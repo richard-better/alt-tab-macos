@@ -10,6 +10,7 @@ class TileView: FlippedView {
     var appIcon = LightImageLayer()
     var appIconHighlight = noAnimation { CALayer() }
     var label = TileTitleView(font: Appearance.font)
+    private let appNameLabel = NSTextField(labelWithString: "")
     var statusIcons = StatusIconsView()
     var dockLabelIcon = TileFontIconView(badgeSize: TileFontIconView.badgeBaseSize(forIconSize: TileView.iconSize().width))
     var windowlessAppIndicator = WindowlessAppIndicator(tooltip: TileView.noOpenWindowToolTip)
@@ -83,6 +84,11 @@ class TileView: FlippedView {
         label.toolTip = nil
         applyCurrentStyle()
         updateValues(element, index)
+        let titles = Preferences.effectiveAppearanceStyle(SwitcherSession.activeShortcutIndex) == .titles
+        appNameLabel.isHidden = !titles
+        appNameLabel.stringValue = element.application.localizedName ?? ""
+        appNameLabel.font = .systemFont(ofSize: 12)
+        appNameLabel.frame.size = NSSize(width: min(130, appNameLabel.cell!.cellSize.width), height: 18)
         updateSizes(newHeight)
         updatePositions()
         applySearchHighlight()
@@ -134,7 +140,11 @@ class TileView: FlippedView {
         // outlive any single style, so we toggle visibility in `applyCurrentStyle()` instead of
         // conditionally attaching at init time.
         layer!.addSublayer(thumbnail)
-        addSubviews([label, statusIcons])
+        addSubviews([label, statusIcons, appNameLabel])
+        appNameLabel.wantsLayer = true
+        appNameLabel.textColor = .secondaryLabelColor
+        appNameLabel.lineBreakMode = .byTruncatingTail
+        TileView.disableImplicitLayerAnimations(on: appNameLabel)
         setSubviewAbove(windowlessAppIndicator)
         addSubview(dockLabelIcon)
         label.fixHeight()
@@ -551,7 +561,7 @@ class TileView: FlippedView {
         setFrameWidthHeight(newHeight)
         if Preferences.effectiveAppearanceStyle(SwitcherSession.activeShortcutIndex) != .appIcons {
             let hWidth = frame.width - Appearance.edgeInsetsSize * 2
-            let labelWidth = hWidth - appIcon.frame.width - Appearance.appIconLabelSpacing - statusIcons.totalWidth
+            let labelWidth = hWidth - appIcon.frame.width - Appearance.appIconLabelSpacing - statusIcons.totalWidth - (appNameLabel.isHidden ? 0 : appNameLabel.frame.width + 16)
             label.setWidth(labelWidth)
         }
     }
@@ -566,7 +576,7 @@ class TileView: FlippedView {
                 assignIfDifferent(&appIcon.frame.origin.x, edgeInsets + hWidth - appIcon.frame.width)
             }
             statusIcons.layoutIcons(hWidth: hWidth, hHeight: hHeight, edgeInsets: edgeInsets)
-            let labelWidth = hWidth - appIcon.frame.width - Appearance.appIconLabelSpacing - statusIcons.totalWidth
+            let labelWidth = hWidth - appIcon.frame.width - Appearance.appIconLabelSpacing - statusIcons.totalWidth - (appNameLabel.isHidden ? 0 : appNameLabel.frame.width + 16)
             let labelX: CGFloat
             if App.shared.userInterfaceLayoutDirection == .leftToRight {
                 labelX = appIcon.frame.maxX + Appearance.appIconLabelSpacing
@@ -580,6 +590,10 @@ class TileView: FlippedView {
             let hHeight = max(appIcon.frame.height, TilesView.layoutCache.labelHeight)
             assignIfDifferent(&thumbnail.frame.origin, NSPoint(x: edgeInsets, y: edgeInsets + hHeight + Appearance.intraCellPadding))
             thumbnail.centerInSuperlayer(x: true)
+        }
+        if !appNameLabel.isHidden {
+            let x = App.shared.userInterfaceLayoutDirection == .leftToRight ? frame.width - edgeInsets - appNameLabel.frame.width - statusIcons.totalWidth : edgeInsets + statusIcons.totalWidth
+            appNameLabel.frame.origin = NSPoint(x: x, y: (frame.height - appNameLabel.frame.height) / 2)
         }
         updateWindowlessAppIndicatorPosition()
         updateDockLabelIconPosition()
@@ -669,12 +683,7 @@ class TileView: FlippedView {
     }
 
     static func makeAppIconShadow(_ color: NSColor?) -> NSShadow? {
-        guard let color else { return nil }
-        let shadow = NSShadow()
-        shadow.shadowColor = color.withAlphaComponent(0.4)
-        shadow.shadowOffset = NSSize(width: 0.1, height: 1)
-        shadow.shadowBlurRadius = 2
-        return shadow
+        TitlesStyle.appIconShadow(color)
     }
 
     static func makeThumbnailShadow(_ color: NSColor?) -> NSShadow? {

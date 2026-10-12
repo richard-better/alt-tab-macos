@@ -1,7 +1,7 @@
 import Carbon.HIToolbox.Events
 import Cocoa
 
-final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegate, NSSearchFieldDelegate,
+final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegate, NSTextFieldDelegate,
     NSWindowDelegate {
     private(set) static var instance: BrowserTabsPanel?
     private static var shared: BrowserTabsPanel {
@@ -14,8 +14,18 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
     }
 
     private let collector: BrowserTabsCollecting
-    private let search = NSSearchField()
+    private let search = LauncherSearchField()
+    private let searchIcon = TitlesStyle.makeSearchIcon()
     private let table = NSTableView()
+    private let scroll = NSScrollView()
+    private var style = TitlesStyle(scale: .medium, isDark: false)
+    private var browserIcons = [TabBrowser: NSImage]()
+    private var background: NSView!
+    private var stack: NSStackView!
+    private var header: NSStackView!
+    private var footer: NSStackView!
+    private var scrollHeight: NSLayoutConstraint!
+    private let launcherFooter = LauncherFooterView()
     private let status = NSTextField(wrappingLabelWithString: "")
     private let refreshButton = NSButton(
         title: NSLocalizedString("Refresh", comment: ""),
@@ -43,13 +53,18 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
     init(collector: BrowserTabsCollecting = BrowserTabsCollector()) {
         self.collector = collector
         super.init(
-            contentRect: NSRect(x: 0, y: 0, width: 680, height: 500),
-            styleMask: [.titled, .closable, .nonactivatingPanel],
+            contentRect: NSRect(x: 0, y: 0, width: 760, height: 450),
+            styleMask: .nonactivatingPanel,
             backing: .buffered,
             defer: false
         )
         title = NSLocalizedString("Browser tabs", comment: "")
+        setAccessibilityLabel(title)
         isReleasedWhenClosed = false
+        isOpaque = false
+        backgroundColor = .clear
+        hasShadow = true
+        animationBehavior = .none
         isFloatingPanel = true
         hidesOnDeactivate = false
         collectionBehavior = [.moveToActiveSpace, .fullScreenAuxiliary, .transient, .ignoresCycle]
@@ -74,6 +89,11 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
         }
         generation += 1
         let ticket = generation
+        header.isHidden = false
+        footer.isHidden = false
+        automationButton.isHidden = true
+        status.isHidden = true
+        applyAppearance()
         center()
         makeKeyAndOrderFront(nil)
         DispatchQueue.main.async { [weak self] in
@@ -103,6 +123,10 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
     }
 
     func handle(_ event: NSEvent) -> NSEvent? {
+        if event.type == .keyDown, event.keyCode == kVK_ANSI_R, event.modifierFlags.contains(.command) {
+            refresh()
+            return nil
+        }
         guard event.type == .keyDown, !event.modifierFlags.contains(.command) else { return event }
         switch Int(event.keyCode) {
         case kVK_Tab: moveSelection(event.modifierFlags.contains(.shift) ? -1 : 1)
@@ -125,91 +149,166 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
 
     func tableView(_: NSTableView, viewFor _: NSTableColumn?, row: Int) -> NSView? {
         let tab = rows[row]
-        let title = NSTextField(labelWithString: tab.displayTitle)
-        title.font = .systemFont(ofSize: 14, weight: .medium)
-        title.lineBreakMode = .byTruncatingTail
-        let detail = NSTextField(labelWithString: "\(tab.browser.name) · \(tab.url)")
-        detail.textColor = .secondaryLabelColor
-        detail.font = .systemFont(ofSize: 11)
-        detail.lineBreakMode = .byTruncatingMiddle
-        let cell = NSStackView(views: [title, detail])
-        cell.orientation = .vertical
-        cell.alignment = .leading
-        cell.spacing = 3
-        cell.edgeInsets = NSEdgeInsets(top: 6, left: 8, bottom: 6, right: 8)
-        title.widthAnchor.constraint(equalTo: cell.widthAnchor, constant: -16).isActive = true
-        detail.widthAnchor.constraint(equalTo: title.widthAnchor).isActive = true
-        cell.setAccessibilityLabel("\(tab.displayTitle), \(tab.browser.name), \(tab.url)")
+        let identifier = NSUserInterfaceItemIdentifier("browserTab")
+        let cell = table.makeView(withIdentifier: identifier, owner: nil) as? BrowserTabCellView ??
+            BrowserTabCellView()
+        cell.identifier = identifier
+        cell.update(tab, icon: browserIcon(tab.browser), style: style)
         return cell
     }
 
+    func tableView(_: NSTableView, rowViewForRow _: Int) -> NSTableRowView? {
+        BrowserTabRowView()
+    }
+
+    private func browserIcon(_ browser: TabBrowser) -> NSImage? {
+        if let icon = browserIcons[browser] {
+            return icon
+        }
+        guard let url = NSWorkspace.shared.urlForApplication(withBundleIdentifier: browser.rawValue)
+        else { return nil }
+        let icon = NSWorkspace.shared.icon(forFile: url.path)
+        browserIcons[browser] = icon
+        return icon
+    }
+
+    private func applyAppearance() {
+        style = Appearance.titlesStyle
+        appearance = style.appearance
+        table.rowHeight = style.rowHeight
+        if background == nil {
+            setupBackground()
+        }
+        style.updateBackground(background)
+        updatePanelSize()
+        table.reloadData()
+    }
+
+    private func setupBackground() {
+        background = style.makeBackground()
+        let content = TitlesStyle.contentHost(background)
+        content.addSubview(stack)
+        contentView = background
+        NSLayoutConstraint.activate([
+            stack.leadingAnchor.constraint(
+                equalTo: content.leadingAnchor,
+                constant: TitlesStyle.windowPadding
+            ),
+            stack.trailingAnchor.constraint(
+                equalTo: content.trailingAnchor,
+                constant: -TitlesStyle.windowPadding
+            ),
+            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: TitlesStyle.windowPadding),
+            stack.bottomAnchor.constraint(
+                equalTo: content.bottomAnchor,
+                constant: -TitlesStyle.windowPadding
+            ),
+        ])
+    }
+
+    private func updatePanelSize() {
+        let screen = screen ?? NSScreen.main
+        let width = min(TitlesStyle.panelWidth, (screen?.visibleFrame.width ?? 900) * 0.9)
+        let height = min(TitlesStyle.panelHeight, (screen?.visibleFrame.height ?? 700) * 0.8)
+        let extraHeight = (status.isHidden ? 0 : max(30, status.fittingSize.height))
+        scrollHeight.constant = max(
+            style.rowHeight,
+            height - TitlesStyle.windowPadding * 2 - TitlesStyle.headerHeight - TitlesStyle.footerHeight -
+                extraHeight
+        )
+        setContentSize(NSSize(width: width, height: height))
+    }
+
     private func buildContent() {
-        search.placeholderString = NSLocalizedString("Search tab titles, addresses or browsers", comment: "")
+        search.applyLauncherStyle(placeholder: NSLocalizedString("Search browser tabs…", comment: ""))
         search.delegate = self
         search.setAccessibilityLabel(NSLocalizedString("Search browser tabs", comment: ""))
-        refreshButton.bezelStyle = .rounded
-        automationButton.bezelStyle = .rounded
+        refreshButton.isBordered = false
+        refreshButton.image = NSImage(
+            systemSymbolName: "arrow.clockwise",
+            accessibilityDescription: refreshButton.title
+        )
+        refreshButton.imagePosition = .imageOnly
+        refreshButton.toolTip = refreshButton.title
+        refreshButton.setAccessibilityLabel(refreshButton.title)
+        automationButton.isBordered = false
+        automationButton.font = .systemFont(ofSize: 11)
+        automationButton.contentTintColor = .secondaryLabelColor
         refreshButton.target = self
         refreshButton.action = #selector(refresh)
         automationButton.target = self
         automationButton.action = #selector(openAutomationSettings)
-        let header = NSStackView(views: [search, refreshButton])
+        header = NSStackView(views: [searchIcon, search, refreshButton])
+        header.spacing = 12
+        header.edgeInsets = NSEdgeInsets(top: 0, left: 8, bottom: 0, right: 8)
         header.orientation = .horizontal
         let column = NSTableColumn(identifier: NSUserInterfaceItemIdentifier("tab"))
-        column.width = 644
+        column.width = 700
         column.resizingMask = .autoresizingMask
         table.columnAutoresizingStyle = .lastColumnOnlyAutoresizingStyle
         table.addTableColumn(column)
         table.headerView = nil
-        table.rowHeight = 50
+        table.style = .plain
+        table.rowSizeStyle = .custom
+        table.usesAutomaticRowHeights = false
+        table.rowHeight = style.rowHeight
+        table.intercellSpacing = NSSize(width: 0, height: 1)
+        table.backgroundColor = .clear
+        table.selectionHighlightStyle = .regular
         table.dataSource = self
         table.delegate = self
         table.target = self
         table.doubleAction = #selector(activateClickedRow)
         table.allowsEmptySelection = false
         table.setAccessibilityLabel(NSLocalizedString("Browser tabs", comment: ""))
-        let scroll = NSScrollView()
         scroll.documentView = table
         scroll.hasVerticalScroller = true
-        scroll.borderType = .bezelBorder
-        status.font = .systemFont(ofSize: 12)
+        scroll.drawsBackground = false
+        scroll.borderType = .noBorder
+        status.font = .systemFont(ofSize: 11)
         status.textColor = .secondaryLabelColor
         status.maximumNumberOfLines = 0
-        let help = NSTextField(labelWithString: NSLocalizedString(
-            "Tab or arrows to select · Return to switch · Escape to close",
-            comment: ""
-        ))
-        help.font = .systemFont(ofSize: 11)
-        help.textColor = .secondaryLabelColor
-        let footer = NSStackView(views: [help, automationButton])
+        launcherFooter.button.title = NSLocalizedString("Switch  ↵", comment: "")
+        launcherFooter.button.target = self
+        launcherFooter.button.action = #selector(activateSelection)
+        footer = NSStackView(views: [automationButton, launcherFooter])
         footer.orientation = .horizontal
-        let stack = NSStackView(views: [header, scroll, status, footer])
+        stack = NSStackView(views: [header, scroll, status, footer])
         stack.orientation = .vertical
         stack.alignment = .leading
-        stack.spacing = 12
+        stack.spacing = 0
         stack.translatesAutoresizingMaskIntoConstraints = false
-        let content = NSView()
-        content.addSubview(stack)
-        contentView = content
+        scrollHeight = scroll.heightAnchor.constraint(equalToConstant: style.rowHeight * 8)
+        header.isHidden = false
+        footer.isHidden = false
+        automationButton.isHidden = true
+        status.isHidden = true
         NSLayoutConstraint.activate([
-            stack.leadingAnchor.constraint(equalTo: content.leadingAnchor, constant: 18),
-            stack.trailingAnchor.constraint(equalTo: content.trailingAnchor, constant: -18),
-            stack.topAnchor.constraint(equalTo: content.topAnchor, constant: 18),
-            stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -18),
             header.widthAnchor.constraint(equalTo: stack.widthAnchor),
             scroll.widthAnchor.constraint(equalTo: stack.widthAnchor),
             status.widthAnchor.constraint(equalTo: stack.widthAnchor),
             footer.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            header.heightAnchor.constraint(equalToConstant: TitlesStyle.headerHeight),
+            searchIcon.widthAnchor.constraint(equalToConstant: 22),
+            searchIcon.heightAnchor.constraint(equalToConstant: 22),
+            search.heightAnchor.constraint(equalToConstant: 44),
             search.widthAnchor.constraint(greaterThanOrEqualToConstant: 280),
-            scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 200),
+            footer.heightAnchor.constraint(equalToConstant: TitlesStyle.footerHeight),
+            launcherFooter.heightAnchor.constraint(equalToConstant: TitlesStyle.footerHeight),
+            launcherFooter.widthAnchor.constraint(greaterThanOrEqualTo: footer.widthAnchor, multiplier: 0.65),
+            scrollHeight,
         ])
+        applyAppearance()
     }
 
     @objc private func refresh() {
         guard !collecting, !activating else { return }
         collecting = true
+        launcherFooter.button.isEnabled = false
         refreshButton.isEnabled = false
         status.stringValue = NSLocalizedString("Reading Safari and Chrome tabs…", comment: "")
+        status.isHidden = false
+        updatePanelSize()
         let ticket = generation
         collector.collect { [weak self] result in
             guard let self else { return }
@@ -225,6 +324,10 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
                 self.snapshot = snapshot
                 filterRows()
             case .failure:
+                status.isHidden = false
+                header.isHidden = false
+                footer.isHidden = false
+                automationButton.isHidden = false
                 status.stringValue = NSLocalizedString(
                     "Browser tabs could not be read. Check Automation permissions and try Refresh.",
                     comment: ""
@@ -243,24 +346,36 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
     private func filterRows() {
         let selected = rows.indices.contains(table.selectedRow) ? rows[table.selectedRow].identity : nil
         rows = snapshot.tabs.filter { $0.matches(search.stringValue) }
+        updatePanelSize()
         table.reloadData()
         if !rows.isEmpty {
             let index = selected.flatMap { id in rows.firstIndex { $0.identity == id } } ?? 0
             table.selectRowIndexes(IndexSet(integer: index), byExtendingSelection: false)
         }
+        launcherFooter.button.isEnabled = !rows.isEmpty && !collecting
         guard !collecting else { return }
         if !snapshot.issues.isEmpty {
+            status.isHidden = false
+            footer.isHidden = false
+            automationButton.isHidden = false
+            header.isHidden = false
             status.stringValue = snapshot.issues.map(\.message).joined(separator: "\n")
         } else if snapshot.tabs.isEmpty {
+            status.isHidden = false
             status.stringValue = NSLocalizedString(
                 "No tabs found. Open Safari or Google Chrome, then Refresh.",
                 comment: ""
             )
         } else if rows.isEmpty {
+            status.isHidden = false
             status.stringValue = NSLocalizedString("No matching tabs.", comment: "")
         } else {
-            status.stringValue = String(format: NSLocalizedString("%d tabs", comment: ""), rows.count)
+            status.isHidden = true
+            footer.isHidden = false
+            automationButton.isHidden = true
+            status.stringValue = ""
         }
+        updatePanelSize()
     }
 
     private func moveSelection(_ delta: Int) {
@@ -276,24 +391,29 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
         activateSelection()
     }
 
-    private func activateSelection() {
+    @objc private func activateSelection() {
         guard !activating, !collecting, rows.indices.contains(table.selectedRow) else { return }
         activating = true
         refreshButton.isEnabled = false
         status.stringValue = NSLocalizedString("Switching to tab…", comment: "")
+        launcherFooter.button.isEnabled = false
         let ticket = generation
         collector.activate(rows[table.selectedRow]) { [weak self] result in
             guard let self, generation == ticket else { return }
             activating = false
+            launcherFooter.button.isEnabled = true
             refreshButton.isEnabled = true
             switch result {
             case .success(true): dismiss()
-            case .success(false): status.stringValue = NSLocalizedString(
+            case .success(false): status.isHidden = false
+                status.stringValue = NSLocalizedString(
                     "This tab changed or closed. Refresh the list and select it again.",
                     comment: ""
                 )
-            case let .failure(error): status.stringValue = error.localizedDescription
+            case let .failure(error): status.isHidden = false
+                status.stringValue = error.localizedDescription
             }
+            updatePanelSize()
             restoreFocusAfterOperation()
         }
     }
@@ -302,5 +422,107 @@ final class BrowserTabsPanel: NSPanel, NSTableViewDataSource, NSTableViewDelegat
         NSWorkspace.shared.open(
             URL(string: "x-apple.systempreferences:com.apple.preference.security?Privacy_Automation")!
         )
+    }
+}
+
+private final class BrowserTabRowView: NSTableRowView {
+    private let outline = CALayer()
+    override init(frame: NSRect) {
+        super.init(frame: frame)
+        wantsLayer = true
+        outline.actions = ["position": NSNull(), "bounds": NSNull(), "opacity": NSNull(), "hidden": NSNull()]
+        outline.isHidden = true
+        layer?.addSublayer(outline)
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        fatalError("Class only supports programmatic initialization")
+    }
+
+    override func drawBackground(in dirtyRect: NSRect) {
+        outline.isHidden = !isSelected
+        super.drawBackground(in: dirtyRect)
+    }
+
+    override var interiorBackgroundStyle: NSView.BackgroundStyle {
+        .normal
+    }
+
+    override func drawSelection(in _: NSRect) {
+        outline.frame = NSRect(x: 0, y: 0, width: min(bounds.width, visibleRect.width), height: bounds.height)
+        TitlesStyle.applySelection(outline)
+        outline.isHidden = false
+    }
+}
+
+private final class BrowserTabCellView: NSTableCellView {
+    private let icon = NSImageView()
+    private let browser = NSTextField(labelWithString: "")
+    private let label = TileTitleView(font: .systemFont(ofSize: 14), color: .labelColor)
+    private var iconWidth: NSLayoutConstraint!
+    private var iconHeight: NSLayoutConstraint!
+    private var labelHeight: NSLayoutConstraint!
+    init() {
+        super.init(frame: .zero)
+        icon.translatesAutoresizingMaskIntoConstraints = false
+        icon.imageScaling = .scaleProportionallyUpOrDown
+        icon.wantsLayer = true
+        icon.shadow = TitlesStyle.appIconShadow(.gray.withAlphaComponent(0.8))
+        label.translatesAutoresizingMaskIntoConstraints = false
+        label.wantsLayer = true
+        label.lineBreakMode = .byTruncatingTail
+        label.maximumNumberOfLines = 1
+        label.setContentCompressionResistancePriority(.defaultLow, for: .horizontal)
+        browser.translatesAutoresizingMaskIntoConstraints = false
+        browser.font = .systemFont(ofSize: 12)
+        browser.textColor = .secondaryLabelColor
+        browser.setContentCompressionResistancePriority(.required, for: .horizontal)
+        addSubview(icon)
+        addSubview(label)
+        addSubview(browser)
+        iconWidth = icon.widthAnchor.constraint(equalToConstant: 24)
+        iconHeight = icon.heightAnchor.constraint(equalTo: icon.widthAnchor)
+        labelHeight = label.heightAnchor.constraint(equalToConstant: 20)
+        NSLayoutConstraint.activate([
+            icon.leadingAnchor.constraint(equalTo: leadingAnchor, constant: 8),
+            icon.centerYAnchor.constraint(equalTo: centerYAnchor),
+            iconWidth, iconHeight, labelHeight,
+            label.leadingAnchor.constraint(
+                equalTo: icon.trailingAnchor,
+                constant: TitlesStyle.iconLabelSpacing
+            ),
+            label.trailingAnchor.constraint(equalTo: browser.leadingAnchor, constant: -12),
+            browser.trailingAnchor.constraint(equalTo: trailingAnchor, constant: -8),
+            browser.centerYAnchor.constraint(equalTo: centerYAnchor),
+            label.centerYAnchor.constraint(equalTo: centerYAnchor),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        fatalError("Class only supports programmatic initialization")
+    }
+
+    func update(_ tab: BrowserTab, icon: NSImage?, style: TitlesStyle) {
+        self.icon.image = icon
+        browser.stringValue = tab.browser.name
+        iconWidth.constant = style.iconSize
+        label.stringValue = tab.displayTitle
+        label.font = style.font
+        label.textColor = style.textColor
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.alignment = .natural
+        paragraph.baseWritingDirection = .leftToRight
+        paragraph.lineBreakMode = .byTruncatingTail
+        label.attributedStringValue = NSAttributedString(string: tab.displayTitle,
+                                                         attributes: [
+                                                             .font: style.font,
+                                                             .foregroundColor: style.textColor,
+                                                             .paragraphStyle: paragraph,
+                                                         ])
+        labelHeight.constant = label.cell!.cellSize.height
+        toolTip = "\(tab.displayTitle)\n\(tab.url)"
+        setAccessibilityLabel("\(tab.displayTitle), \(tab.browser.name), \(tab.url)")
     }
 }

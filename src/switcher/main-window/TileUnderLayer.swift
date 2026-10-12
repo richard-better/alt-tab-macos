@@ -13,7 +13,10 @@ class TileUnderLayer: CALayer {
         }
     }
 
-    required init?(coder: NSCoder) { fatalError() }
+    @available(*, unavailable)
+    required init?(coder _: NSCoder) {
+        fatalError()
+    }
 
     func updateHighlight(focusedView: TileView?, hoveredView: TileView?) {
         updateLayer(focusedLayer, for: focusedView, isFocused: true)
@@ -33,14 +36,22 @@ class TileUnderLayer: CALayer {
             height: hf.height
         )
         highlightLayer.frame = rect
-        highlightLayer.cornerRadius = Appearance.cellCornerRadius
-        highlightLayer.backgroundColor = (isFocused
-            ? Appearance.highlightFocusedBackgroundColor
-            : Appearance.highlightHoveredBackgroundColor).cgColor
-        highlightLayer.borderColor = (isFocused
-            ? Appearance.highlightFocusedBorderColor
-            : Appearance.highlightHoveredBorderColor).cgColor
-        highlightLayer.borderWidth = Appearance.highlightBorderWidth
+        if isFocused, Preferences.effectiveAppearanceStyle(SwitcherSession.activeShortcutIndex) == .titles {
+            TitlesStyle.applySelection(
+                highlightLayer,
+                cornerRadius: Appearance.cellCornerRadius,
+                borderWidth: Appearance.highlightBorderWidth
+            )
+        } else {
+            highlightLayer.cornerRadius = Appearance.cellCornerRadius
+            highlightLayer.backgroundColor = (isFocused
+                ? Appearance.highlightFocusedBackgroundColor
+                : Appearance.highlightHoveredBackgroundColor).cgColor
+            highlightLayer.borderColor = (isFocused
+                ? Appearance.highlightFocusedBorderColor
+                : Appearance.highlightHoveredBorderColor).cgColor
+            highlightLayer.borderWidth = Appearance.highlightBorderWidth
+        }
         highlightLayer.isHidden = false
     }
 }
