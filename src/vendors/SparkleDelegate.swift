@@ -24,7 +24,7 @@ class SparkleDelegate: NSObject, SPUUpdaterDelegate {
     var onNextCheckCompletion: ((UpdateCheckResult) -> Void)?
 
     func feedURLString(for updater: SPUUpdater) -> String? {
-        return Endpoints.appcastUrl
+        return Bundle.main.object(forInfoDictionaryKey: "ForkAppcastURL") as? String ?? Endpoints.appcastUrl
     }
 
     /// `day` is `LicenseManager.trialDay`, the same count the "Get Pro" links carry, so trial cohorts can be sized
