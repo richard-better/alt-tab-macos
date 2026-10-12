@@ -147,7 +147,7 @@ class App {
         var tilesPanel = TilesPanelMock()
     }
     static let app = AppMock()
-    static let bundleIdentifier = "com.richard-better.alt-tab-browser-tabs"
+    static let bundleIdentifier = "me.richardb.window-switcher"
 }
 
 class TilesPanel {
