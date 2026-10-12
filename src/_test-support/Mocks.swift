@@ -72,6 +72,7 @@ enum SettingsSearchIndex {
 }
 
 class Appearance {
+    static var titlesStyle = TitlesStyle(scale: .medium, isDark: true)
     static var searchMatchHighlightColor: NSColor = .yellow
     static var searchMatchForegroundColor: NSColor = .black
 }

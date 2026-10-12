@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A141BC057A134398AFF84C05 /* TitlesStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A141BC057A134398AFF84C07 /* TitlesStyle.swift */; };
+		A141BC057A134398AFF84C06 /* TitlesStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A141BC057A134398AFF84C07 /* TitlesStyle.swift */; };
 		A141BC057A134398AFF84C02 /* BrowserTabsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A141BC057A134398AFF84C01 /* BrowserTabsPanel.swift */; };
 		64C0D8955FD1508FA65EEC21 /* BrowserTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F4F5EA24D6F53C281DD935D /* BrowserTabs.swift */; };
 		4A15941697C15A718733B4E7 /* BrowserTabs.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6F4F5EA24D6F53C281DD935D /* BrowserTabs.swift */; };
@@ -501,6 +503,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A141BC057A134398AFF84C07 /* TitlesStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitlesStyle.swift; sourceTree = "<group>"; };
 		A141BC057A134398AFF84C01 /* BrowserTabsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserTabsPanel.swift; sourceTree = "<group>"; };
 		6F4F5EA24D6F53C281DD935D /* BrowserTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserTabs.swift; sourceTree = "<group>"; };
 		55BAFB02536F58DDA0593110 /* BrowserTabsScripts.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserTabsScripts.swift; sourceTree = "<group>"; };
@@ -1434,6 +1437,7 @@
 				D04BA00000000000C0DE0010 /* ShortcutAction.swift */,
 				D04BA00000000000C0DE0020 /* SwitcherSession.swift */,
 				1C961AC3633CD0C62CCE050E /* Appearance.swift */,
+				A141BC057A134398AFF84C07 /* TitlesStyle.swift */,
 				BF0C8D57C86AF492D43A576D /* AppearanceTestable.swift */,
 				BF0C84933936C6FE676CD33C /* AppearanceTests.swift */,
 				AA974BA829B7D84C0099A29E /* PreviewPanel.swift */,
@@ -2221,6 +2225,7 @@
 				6F34B06F727052F6A191DE94 /* BrowserTabsTests.swift in Sources */,
 				A141BC057A134398AFF84C03 /* BrowserTabsCollector.swift in Sources */,
 				A141BC057A134398AFF84C04 /* BrowserTabsPanel.swift in Sources */,
+				A141BC057A134398AFF84C06 /* TitlesStyle.swift in Sources */,
 				10F5AECE239ADA681CF68695 /* SearchDiscoveryShortcut.swift in Sources */,
 				389D13E4E7FFA467D5BC68D8 /* SearchDiscoveryPolicy.swift in Sources */,
 				31F45195947F044608CC5D8A /* SearchDiscoveryPanel.swift in Sources */,
@@ -2567,6 +2572,7 @@
 				BF0CAC000000000000001001 /* MissionControlOverlay.swift in Sources */,
 				1C96108A0CB2565233FE100B /* TableGroupView.swift in Sources */,
 				1C9618872DD3863A8EFE8414 /* Appearance.swift in Sources */,
+				A141BC057A134398AFF84C05 /* TitlesStyle.swift in Sources */,
 				AA0C8B000000000000000001 /* UsageStats.swift in Sources */,
 				AA0C8B000000000000000011 /* MoveToApplicationsFolder.swift in Sources */,
 				AA0C8B000000000000000003 /* UsageStatsTestable.swift in Sources */,

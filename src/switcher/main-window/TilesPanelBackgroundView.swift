@@ -100,19 +100,11 @@ func requiredEffectViewKind() -> EffectViewKind {
 
 @available(macOS 26.0, *)
 private func makeGlassEffectView(clear: Bool) -> NSGlassEffectView {
-    let glass = NSGlassEffectView()
+    let glass = TitlesStyle.makeGlassView()
     glass.style = clear ? .clear : .regular
     if clear {
         LiquidGlass.applyClearVariant(glass)
     }
-    // NSGlassEffectView only renders views embedded in `contentView`; this single host holds the
-    // scroll view, search field and empty-state label so they all sit inside the glass.
-    glass.contentView = NSView()
-    // without this, there are weird shadows around the corners (most visible with .regular glass)
-    glass.wantsLayer = true
-    glass.layer!.masksToBounds = true
-    glass.layer!.cornerCurve = .continuous
-    // after the layer exists: `updateAppearance` rounds the clip through it
     glass.updateAppearance()
     return glass
 }

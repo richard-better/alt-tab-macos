@@ -30,9 +30,9 @@ class Appearance {
 
     // theme: constants
     static var enablePanelShadow = true
-    static var highlightFocusedBackgroundColor: NSColor { get { NSColor.systemAccentColor.withAlphaComponent(0.2) } }
+    static var highlightFocusedBackgroundColor: NSColor { get { TitlesStyle.selectionBackground } }
     static var highlightHoveredBackgroundColor: NSColor { get { NSColor.systemAccentColor.withAlphaComponent(0.1) } }
-    static var highlightFocusedBorderColor: NSColor { get { NSColor.systemAccentColor } }
+    static var highlightFocusedBorderColor: NSColor { get { TitlesStyle.selectionBorder } }
     static var highlightHoveredBorderColor: NSColor { get { NSColor.systemAccentColor.withAlphaComponent(0.7) } }
     static var searchMatchHighlightColor: NSColor { get { NSColor.systemYellow.withAlphaComponent(0.5) } }
     static var searchMatchForegroundColor: NSColor { get { NSColor(calibratedWhite: 0.12, alpha: 1) } }
@@ -42,6 +42,18 @@ class Appearance {
     static var currentTheme: AppearanceThemePreference {
         let theme = Preferences.effectiveAppearanceTheme(SwitcherSession.activeShortcutIndex)
         return theme == .system ? NSAppearance.currentDrawing().getThemeName() : theme
+    }
+
+    static var titlesStyle: TitlesStyle {
+        TitlesStyle(scale: titlesScale(currentSize), isDark: currentTheme == .dark)
+    }
+
+    private static func titlesScale(_ size: AppearanceSizePreference) -> TitlesStyle.Scale {
+        switch size {
+        case .small: return .small
+        case .medium: return .medium
+        case .large, .auto: return .large
+        }
     }
 
     static func update() {
@@ -76,7 +88,7 @@ class Appearance {
     }
 
     private static func updateTheme() {
-        highlightBorderWidth = currentStyle == .titles ? 2 : 3
+        highlightBorderWidth = currentStyle == .titles ? TitlesStyle.selectionBorderWidth : 3
         if currentTheme == .dark {
             darkTheme()
         } else {
@@ -158,25 +170,17 @@ class Appearance {
     }
 
     private static func titlesSize(_ size: AppearanceSizePreference) {
+        let style = TitlesStyle(scale: titlesScale(size), isDark: false)
         hideThumbnails = true
-        windowPadding = 18
-        windowCornerRadius = 23
-        cellCornerRadius = 10
-        edgeInsetsSize = 7
+        windowPadding = TitlesStyle.windowPadding
+        windowCornerRadius = TitlesStyle.windowCornerRadius
+        cellCornerRadius = TitlesStyle.rowCornerRadius
+        edgeInsetsSize = TitlesStyle.rowPadding
         windowMinWidthInRow = 0.6
         windowMaxWidthInRow = 0.9
         rowsCount = 1
-        switch size {
-            case .small:
-                iconSize = 18
-                fontHeight = 13
-            case .medium:
-                iconSize = 24
-                fontHeight = 14
-            case .large, .auto:
-                iconSize = 30
-                fontHeight = 16
-        }
+        iconSize = style.iconSize
+        fontHeight = style.fontSize
     }
 
     private static func updateFont() {
@@ -188,13 +192,13 @@ class Appearance {
     }
 
     private static func lightTheme() {
-        fontColor = .black.withAlphaComponent(0.8)
+        fontColor = TitlesStyle.textColor(isDark: false)
         imagesShadowColor = .gray.withAlphaComponent(0.8)
         material = LegacyMaterial.mediumLight
     }
 
     private static func darkTheme() {
-        fontColor = .white.withAlphaComponent(0.85)
+        fontColor = TitlesStyle.textColor(isDark: true)
         imagesShadowColor = .gray.withAlphaComponent(0.8)
         material = LegacyMaterial.dark
     }
