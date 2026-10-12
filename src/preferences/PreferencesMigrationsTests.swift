@@ -28,6 +28,30 @@ final class PreferencesMigrationsTests: XCTestCase {
         super.tearDown()
     }
 
+    func testBrowserShortcutMigrationAppendsATabSlotWithoutChangingWindowShortcuts() {
+        defaults.set("2", forKey: "shortcutCount")
+        defaults.set(["custom": "existing"], forKey: "holdShortcut")
+        let hold: [String: Any] = ["string": "Control-Option", "secureData": Data([1, 2])]
+        let next: [String: Any] = ["string": "Tab", "secureData": Data([3, 4])]
+        XCTAssertEqual(PreferencesMigrations.migrateBrowserShortcutToSlot(holdStorage: hold, nextStorage: next), 2)
+        XCTAssertEqual(defaults.dictionary(forKey: "holdShortcut")?["custom"] as? String, "existing")
+        XCTAssertEqual(defaults.dictionary(forKey: "holdShortcut3")?["secureData"] as? Data, Data([1, 2]))
+        XCTAssertEqual(defaults.dictionary(forKey: "nextWindowShortcut3")?["secureData"] as? Data, Data([3, 4]))
+        XCTAssertEqual(defaults.string(forKey: "switcherTarget3"), "1")
+        XCTAssertEqual(defaults.string(forKey: "tabReleaseBehavior3"), "0")
+        XCTAssertEqual(defaults.string(forKey: "shortcutCount"), "3")
+        XCTAssertNil(PreferencesMigrations.migrateBrowserShortcutToSlot(holdStorage: [:], nextStorage: [:]))
+        XCTAssertEqual(defaults.string(forKey: "shortcutCount"), "3")
+    }
+
+    func testBrowserShortcutMigrationPreservesLegacyBindingWhenAllSlotsAreUsed() {
+        defaults.set(String(Preferences.maxShortcutCount), forKey: "shortcutCount")
+        defaults.set(["string": "custom"], forKey: "browserTabsShortcut")
+        XCTAssertNil(PreferencesMigrations.migrateBrowserShortcutToSlot(holdStorage: [:], nextStorage: [:]))
+        XCTAssertFalse(defaults.bool(forKey: "browserShortcutMigrated"))
+        XCTAssertEqual(defaults.dictionary(forKey: "browserTabsShortcut")?["string"] as? String, "custom")
+    }
+
     // MARK: - A. Version gating (shouldRun)
 
     func testVersionGatingRunsForOlderStoredVersion() {

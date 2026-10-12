@@ -460,3 +460,26 @@ struct WidthHeightImage {
 }
 
 typealias LocalizedString = String
+
+
+extension SwitcherTargetPreference: MacroPreference {
+    var localizedString: LocalizedString {
+        self == .windows ? NSLocalizedString("Windows", comment: "") : NSLocalizedString("Browser tabs", comment: "")
+    }
+}
+
+extension TabReleaseBehaviorPreference: MacroPreference {
+    var localizedString: LocalizedString {
+        self == .keepOpen ? NSLocalizedString("Keep open", comment: "") : NSLocalizedString("Switch", comment: "")
+    }
+}
+
+extension TabBrowserScopePreference: MacroPreference {
+    var localizedString: LocalizedString {
+        switch self {
+        case .all: return NSLocalizedString("Safari and Chrome", comment: "")
+        case .safari: return NSLocalizedString("Safari", comment: "")
+        case .chrome: return NSLocalizedString("Chrome", comment: "")
+        }
+    }
+}

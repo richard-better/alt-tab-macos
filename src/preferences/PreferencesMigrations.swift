@@ -63,6 +63,21 @@ class PreferencesMigrations {
         }
     }
 
+    @discardableResult
+    static func migrateBrowserShortcutToSlot(holdStorage: [String: Any], nextStorage: [String: Any]) -> Int? {
+        guard !defaults.bool(forKey: "browserShortcutMigrated") else { return nil }
+        let count = max(Preferences.minShortcutCount, Int(defaults.string(forKey: "shortcutCount") ?? "2") ?? 2)
+        guard count < Preferences.maxShortcutCount else { return nil }
+        defaults.set(holdStorage, forKey: Preferences.indexToName("holdShortcut", count))
+        defaults.set(nextStorage, forKey: Preferences.indexToName("nextWindowShortcut", count))
+        defaults.set("1", forKey: Preferences.indexToName("switcherTarget", count))
+        defaults.set("0", forKey: Preferences.indexToName("tabReleaseBehavior", count))
+        defaults.set("0", forKey: Preferences.indexToName("tabBrowserScope", count))
+        defaults.set(String(count + 1), forKey: "shortcutCount")
+        defaults.set(true, forKey: "browserShortcutMigrated")
+        return count
+    }
+
     static func shouldRun(_ versionInPlist: String, _ versionThreshold: String) -> Bool {
         // x.compare(y) is .orderedDescending if x > y
         versionInPlist.compare(versionThreshold, options: .numeric) != .orderedDescending

@@ -17,6 +17,7 @@ class Preferences {
             "hideShowAppShortcut": defaultShortcut("H"),
             "searchShortcut": defaultShortcut("S"),
             "browserTabsShortcut": defaultShortcut("⌃⌥⇥"),
+            "browserShortcutMigrated": "false",
             "showSearchHint": "true",
             "arrowKeysEnabled": "true",
             "vimKeysEnabled": "false",
@@ -53,6 +54,9 @@ class Preferences {
             values[indexToName("nextWindowShortcut", index)] = defaultShortcut(index == 0 ? "⇥" : (index == 1 ? keyAboveTabDependingOnInputSource() : ""))
         }
         (0...maxShortcutCount).forEach { index in
+            values[indexToName("switcherTarget", index)] = SwitcherTargetPreference.windows.indexAsString
+            values[indexToName("tabReleaseBehavior", index)] = TabReleaseBehaviorPreference.keepOpen.indexAsString
+            values[indexToName("tabBrowserScope", index)] = TabBrowserScopePreference.all.indexAsString
             values[indexToName("appsToShow", index)] = index == 1 ? AppsToShowPreference.active.indexAsString : (index == 2 ? AppsToShowPreference.nonActive.indexAsString : AppsToShowPreference.all.indexAsString)
             values[indexToName("spacesToShow", index)] = SpacesToShowPreference.all.indexAsString
             values[indexToName("screensToShow", index)] = ScreensToShowPreference.all.indexAsString
@@ -314,6 +318,18 @@ class Preferences {
             guard let overrideValue = all[key] as? String else { return false }
             return overrideValue != globalValue
         }
+    }
+
+    static func switcherTarget(_ index: Int) -> SwitcherTargetPreference {
+        CachedUserDefaults.macroPref(indexToName("switcherTarget", index), SwitcherTargetPreference.allCases)
+    }
+
+    static func tabReleaseBehavior(_ index: Int) -> TabReleaseBehaviorPreference {
+        CachedUserDefaults.macroPref(indexToName("tabReleaseBehavior", index), TabReleaseBehaviorPreference.allCases)
+    }
+
+    static func tabBrowserScope(_ index: Int) -> TabBrowserScopePreference {
+        CachedUserDefaults.macroPref(indexToName("tabBrowserScope", index), TabBrowserScopePreference.allCases)
     }
 
     static func effectiveAppearanceStyle(_ index: Int) -> AppearanceStylePreference {

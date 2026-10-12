@@ -57,3 +57,17 @@ struct BrowserTabActivation: Codable {
     let activated: Bool
     let code: Int?
 }
+
+
+enum SwitcherTargetPreference: CaseIterable { case windows, browserTabs }
+enum TabReleaseBehaviorPreference: CaseIterable { case keepOpen, switchOnRelease }
+enum TabBrowserScopePreference: CaseIterable {
+    case all, safari, chrome
+    var browsers: Set<TabBrowser> {
+        switch self {
+        case .all: return Set(TabBrowser.allCases)
+        case .safari: return [.safari]
+        case .chrome: return [.chrome]
+        }
+    }
+}
