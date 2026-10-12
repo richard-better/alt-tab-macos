@@ -63,7 +63,7 @@
 	<key>SUPublicEDKey</key>
 	<string>2e9SQOBoaKElchSa/4QDli/nvYkyuDNfynfzBF6vJK4=</string>
 	<key>ForkAppcastURL</key>
-	<string>https://raw.githubusercontent.com/richard-better/alt-tab-macos/master/browser-tabs-appcast.xml</string>
+	<string>https://raw.githubusercontent.com/richard-better/Switcheroo/richard-patches/browser-tabs-appcast.xml</string>
 	<key>SUEnableAutomaticChecks</key>
 	<string>true</string>
 	<key>SUScheduledCheckInterval</key>

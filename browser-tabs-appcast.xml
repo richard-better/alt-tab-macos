@@ -2,7 +2,7 @@
 <rss version="2.0" xmlns:sparkle="http://www.andymatuschak.org/xml-namespaces/sparkle">
   <channel>
     <title>Switcheroo releases</title>
-    <link>https://github.com/richard-better/alt-tab-macos</link>
+    <link>https://github.com/richard-better/Switcheroo</link>
     <description>Updates for Switcheroo</description>
   </channel>
 </rss>
