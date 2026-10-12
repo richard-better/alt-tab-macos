@@ -1,3 +1,4 @@
+import Carbon.HIToolbox.Events
 import ShortcutRecorder
 
 class KeyboardEventsTestable {
@@ -14,6 +15,12 @@ class KeyboardEventsTestable {
 func handleKeyboardEvent(_ globalId: Int?, _ shortcutState: ShortcutState?, _ keyCode: UInt32?,
                          _ modifiers: NSEvent.ModifierFlags?, _ isARepeat: Bool, _ event: NSEvent? = nil,
                          _ recordedHoldRelease: Bool = false) -> Bool {
+    if let event, event.type == .keyDown,
+       event.keyCode == kVK_Return || event.keyCode == kVK_ANSI_KeypadEnter,
+       SwitcherSession.isActive, TilesPanel.shared.isKeyWindow, TilesView.canCommitSelection {
+        ShortcutActions.execute("focusWindowShortcut")
+        return true
+    }
     if let event, shouldAbsorbSearchEditingKeyDown(event) {
         switch TilesView.handleSearchEditingKeyDown(event) {
         case .handled: return true

@@ -255,6 +255,8 @@ class TilesView {
         editor.selectedRange = SearchFieldEditing.endOfText(length: searchField.stringValue.utf16.count)
     }
 
+    static var canCommitSelection: Bool { !ContextMenuEvents.isMenuOpen && !hasMarkedText() }
+
     static func hasMarkedText() -> Bool {
         (searchField.currentEditor() as? NSTextView)?.hasMarkedText() == true
     }

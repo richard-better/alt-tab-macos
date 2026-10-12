@@ -161,6 +161,7 @@ class TilesPanel {
 }
 
 class TilesView {
+    static var canCommitSelection = true
     static var isSearchEditing: Bool {
         get { App.app.tilesPanel.tilesView.isSearchEditing }
         set { App.app.tilesPanel.tilesView.isSearchEditing = newValue }

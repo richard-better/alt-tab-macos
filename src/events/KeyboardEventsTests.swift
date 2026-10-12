@@ -16,6 +16,73 @@ final class KeyboardEventsUtilsTests: XCTestCase {
         XCTAssertEqual(Set(ids.values).count, ids.count)
     }
 
+    func testReturnCommitsSelectionWhileSearchHasTheCaretAndModifierIsHeld() throws {
+        resetState()
+        SwitcherSession.current = SwitcherSession()
+        SwitcherSession.current?.forceDoNothingOnRelease = true
+        TilesPanel.shared.isKeyWindow = true
+        TilesView.isSearchEditing = true
+        ModifierFlags.current = [.command]
+        defer {
+            TilesPanel.shared.isKeyWindow = false
+            TilesView.isSearchEditing = false
+            SwitcherSession.current = nil
+        }
+        let event = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.command],
+            timestamp: 0, windowNumber: 0, context: nil, characters: "\r", charactersIgnoringModifiers: "\r",
+            isARepeat: false, keyCode: 36))
+        XCTAssertTrue(handleKeyboardEvent(nil, nil, 36, [.command], false, event))
+        XCTAssertEqual(ControlsTab.shortcutsActionsTriggered, ["focusWindowShortcut"])
+    }
+
+    func testKeypadEnterCommitsSelectionWhileModifierIsHeld() throws {
+        resetState()
+        SwitcherSession.current = SwitcherSession()
+        TilesPanel.shared.isKeyWindow = true
+        ModifierFlags.current = [.option]
+        defer { TilesPanel.shared.isKeyWindow = false; SwitcherSession.current = nil }
+        let event = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [.option],
+            timestamp: 0, windowNumber: 0, context: nil, characters: "\r", charactersIgnoringModifiers: "\r",
+            isARepeat: false, keyCode: 76))
+        XCTAssertTrue(handleKeyboardEvent(nil, nil, 76, [.option], false, event))
+        XCTAssertEqual(ControlsTab.shortcutsActionsTriggered, ["focusWindowShortcut"])
+    }
+
+    func testReturnDoesNotCommitWhileComposingTextOrUsingAMenu() throws {
+        resetState()
+        SwitcherSession.current = SwitcherSession()
+        SwitcherSession.current?.forceDoNothingOnRelease = true
+        TilesPanel.shared.isKeyWindow = true
+        TilesView.isSearchEditing = true
+        TilesView.canCommitSelection = false
+        ModifierFlags.current = []
+        defer {
+            TilesPanel.shared.isKeyWindow = false
+            TilesView.isSearchEditing = false
+            TilesView.canCommitSelection = true
+            SwitcherSession.current = nil
+        }
+        let event = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [],
+            timestamp: 0, windowNumber: 0, context: nil, characters: "\r", charactersIgnoringModifiers: "\r",
+            isARepeat: false, keyCode: 36))
+        XCTAssertFalse(handleKeyboardEvent(nil, nil, 36, [], false, event))
+        XCTAssertEqual(ControlsTab.shortcutsActionsTriggered, [])
+    }
+
+    func testReturnInAnotherWindowDoesNotCommitTheSwitcherSelection() throws {
+        resetState()
+        SwitcherSession.current = SwitcherSession()
+        SwitcherSession.current?.forceDoNothingOnRelease = true
+        TilesPanel.shared.isKeyWindow = false
+        ModifierFlags.current = []
+        defer { SwitcherSession.current = nil }
+        let event = try XCTUnwrap(NSEvent.keyEvent(with: .keyDown, location: .zero, modifierFlags: [],
+            timestamp: 0, windowNumber: 0, context: nil, characters: "\r", charactersIgnoringModifiers: "\r",
+            isARepeat: false, keyCode: 36))
+        XCTAssertFalse(handleKeyboardEvent(nil, nil, 36, [], false, event))
+        XCTAssertEqual(ControlsTab.shortcutsActionsTriggered, [])
+    }
+
     // alt-down > tab-down > tab-up > alt-up
     func testMostCommonSequence() throws {
         resetState()
