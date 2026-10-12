@@ -7,6 +7,8 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A141BC057A134398AFF84C08 /* TileTitleView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D04BAD1297730B191E96E7FE /* TileTitleView.swift */; };
+		A141BC057A134398AFF84C09 /* TileTitleView+Appearance.swift in Sources */ = {isa = PBXBuildFile; fileRef = A141BC057A134398AFF84C10 /* TileTitleView+Appearance.swift */; };
 		A141BC057A134398AFF84C05 /* TitlesStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A141BC057A134398AFF84C07 /* TitlesStyle.swift */; };
 		A141BC057A134398AFF84C06 /* TitlesStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = A141BC057A134398AFF84C07 /* TitlesStyle.swift */; };
 		A141BC057A134398AFF84C02 /* BrowserTabsPanel.swift in Sources */ = {isa = PBXBuildFile; fileRef = A141BC057A134398AFF84C01 /* BrowserTabsPanel.swift */; };
@@ -503,6 +505,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A141BC057A134398AFF84C10 /* TileTitleView+Appearance.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "TileTitleView+Appearance.swift"; sourceTree = "<group>"; };
 		A141BC057A134398AFF84C07 /* TitlesStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TitlesStyle.swift; sourceTree = "<group>"; };
 		A141BC057A134398AFF84C01 /* BrowserTabsPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserTabsPanel.swift; sourceTree = "<group>"; };
 		6F4F5EA24D6F53C281DD935D /* BrowserTabs.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BrowserTabs.swift; sourceTree = "<group>"; };
@@ -1746,6 +1749,7 @@
 				BF0C82817AEE4AF34D03CA9D /* TilesPanelBackgroundView.swift */,
 				D04BA653BD073CB58E2CFC93 /* TilesPanel.swift */,
 				D04BAD1297730B191E96E7FE /* TileTitleView.swift */,
+				A141BC057A134398AFF84C10 /* TileTitleView+Appearance.swift */,
 				D04BA1DF8CAB2FAB7FE9244B /* TileFontIconView.swift */,
 				D04BA258B56193958D60978A /* TileView.swift */,
 				5F7B6AFB2F3BAB98003E25E8 /* StatusIconsView.swift */,
@@ -2226,6 +2230,7 @@
 				A141BC057A134398AFF84C03 /* BrowserTabsCollector.swift in Sources */,
 				A141BC057A134398AFF84C04 /* BrowserTabsPanel.swift in Sources */,
 				A141BC057A134398AFF84C06 /* TitlesStyle.swift in Sources */,
+				A141BC057A134398AFF84C08 /* TileTitleView.swift in Sources */,
 				10F5AECE239ADA681CF68695 /* SearchDiscoveryShortcut.swift in Sources */,
 				389D13E4E7FFA467D5BC68D8 /* SearchDiscoveryPolicy.swift in Sources */,
 				31F45195947F044608CC5D8A /* SearchDiscoveryPanel.swift in Sources */,
@@ -2456,6 +2461,7 @@
 				D04BAB68B7B8D1B548BC3AD5 /* App.swift in Sources */,
 				D04BAB048DE698E013577C51 /* TilesPanel.swift in Sources */,
 				D04BA69D47B5E60A6AD9CBD9 /* TileTitleView.swift in Sources */,
+				A141BC057A134398AFF84C09 /* TileTitleView+Appearance.swift in Sources */,
 				D04BA1B133D53572D7B312C2 /* TileFontIconView.swift in Sources */,
 				D04BA1CEC6B9C8945FEC8740 /* TileView.swift in Sources */,
 				D04BA14D93726795A6937832 /* LabelAndControl.swift in Sources */,

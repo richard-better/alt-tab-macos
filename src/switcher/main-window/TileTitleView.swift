@@ -4,9 +4,9 @@ class TileTitleView: NSTextField {
     static let searchHighlightBackgroundKey = NSAttributedString.Key("tileSearchHighlightBackground")
     private var currentWidth: CGFloat = -1
 
-    // we set their size manually; override this to remove wasteful appkit-side work
+    /// we set their size manually; override this to remove wasteful appkit-side work
     override var intrinsicContentSize: NSSize {
-        return NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
+        NSSize(width: NSView.noIntrinsicMetric, height: NSView.noIntrinsicMetric)
     }
 
     /// `NSView` is its own `CALayerDelegate`. By implementing `action(for:forKey:)` on this
@@ -22,7 +22,7 @@ class TileTitleView: NSTextField {
     /// Swift doesn't expose the method as overridable. Providing it here at the Swift level
     /// installs it for the runtime to find when the layer asks the delegate for actions.
     // periphery:ignore - CALayerDelegate, called by CoreAnimation through the ObjC runtime
-    @objc func action(for layer: CALayer, forKey event: String) -> CAAction? {
+    @objc func action(for _: CALayer, forKey event: String) -> CAAction? {
         switch event {
         case "position", "bounds", "frame", "hidden", "opacity", "transform":
             return NSNull()
@@ -31,7 +31,7 @@ class TileTitleView: NSTextField {
         }
     }
 
-    convenience init(font: NSFont) {
+    convenience init(font: NSFont, color: NSColor) {
         self.init(frame: .zero)
         stringValue = ""
         isEditable = false
@@ -39,7 +39,7 @@ class TileTitleView: NSTextField {
         isBezeled = false
         drawsBackground = false
         self.font = font
-        textColor = Appearance.fontColor
+        textColor = color
         lineBreakMode = .byTruncatingTail
         allowsDefaultTighteningForTruncation = false
     }
@@ -49,47 +49,20 @@ class TileTitleView: NSTextField {
         super.draw(dirtyRect)
     }
 
-    /// Re-apply appearance-baked font/color so a recycled instance survives an appearance change
-    /// without being reallocated (which would free this tooltip owner; see TileView.reapplyAppearance).
-    func reapplyAppearance() {
-        font = Appearance.font
-        textColor = Appearance.fontColor
-        fixHeight()
-    }
-
-    /// One line, always: `TilesView.labelLineHeight()` says why the label's own content must not decide.
-    func fixHeight() {
-        frame.size.height = TilesView.labelLineHeight()
-    }
-
     func setWidth(_ width: CGFloat) {
         guard currentWidth != width else { return }
         currentWidth = width
         frame.size.width = width
     }
 
-    func updateTruncationModeIfNeeded() {
-        let newLineBreakMode = getTruncationMode()
-        if lineBreakMode != newLineBreakMode {
-            lineBreakMode = newLineBreakMode
-        }
-    }
-
-    private func getTruncationMode() -> NSLineBreakMode {
-        if Preferences.titleTruncation == .end {
-            return .byTruncatingTail
-        }
-        if Preferences.titleTruncation == .middle {
-            return .byTruncatingMiddle
-        }
-        return .byTruncatingHead
-    }
-
     private func drawRoundedSearchHighlights() {
         let attributed = attributedStringValue
         guard attributed.length > 0 else { return }
         var hasHighlights = false
-        attributed.enumerateAttribute(Self.searchHighlightBackgroundKey, in: NSRange(location: 0, length: attributed.length)) { value, _, stop in
+        attributed.enumerateAttribute(
+            Self.searchHighlightBackgroundKey,
+            in: NSRange(location: 0, length: attributed.length)
+        ) { value, _, stop in
             if value != nil {
                 hasHighlights = true
                 stop.pointee = true
@@ -107,7 +80,10 @@ class TileTitleView: NSTextField {
         layout.addTextContainer(container)
         storage.addLayoutManager(layout)
         layout.ensureLayout(for: container)
-        attributed.enumerateAttribute(Self.searchHighlightBackgroundKey, in: NSRange(location: 0, length: attributed.length)) { value, range, _ in
+        attributed.enumerateAttribute(
+            Self.searchHighlightBackgroundKey,
+            in: NSRange(location: 0, length: attributed.length)
+        ) { value, range, _ in
             guard let color = value as? NSColor else { return }
             let glyphRange = layout.glyphRange(forCharacterRange: range, actualCharacterRange: nil)
             guard glyphRange.length > 0 else { return }
