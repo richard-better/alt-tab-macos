@@ -32,7 +32,7 @@ enum ResolvedReason {
         case .titlesStyle:
             return NSLocalizedString("Unlock the Titles style with Pro", comment: "")
         case .nonEngaged:
-            return NSLocalizedString("Get more from AltTab with Pro", comment: "")
+            return NSLocalizedString("Get more from Switcheroo with Pro", comment: "")
         }
     }
 }

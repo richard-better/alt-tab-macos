@@ -20,7 +20,7 @@ class Day15ProactiveWindow: ProPromptWindow {
     private static func supportingLine() -> String {
         UsageStats.usedProFeaturesSessionCount == 0
             ? NSLocalizedString(
-                "AltTab Pro adds 4 features beyond the free switcher.", comment: "")
+                "Switcheroo Pro adds 4 features beyond the free switcher.", comment: "")
             : NSLocalizedString(
                 "Some Pro features have reverted to free defaults.", comment: "")
     }

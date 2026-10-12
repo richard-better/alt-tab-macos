@@ -3,7 +3,7 @@
 <plist version="1.0">
 <dict>
 	<key>NSAppleEventsUsageDescription</key>
-	<string>AltTab Browser Tabs needs access to Safari and Google Chrome to list and switch between your browser tabs.</string>
+	<string>Switcheroo needs access to Safari and Google Chrome to list and switch between your browser tabs.</string>
 	<!-- ===== Bundle identity (required by macOS / App Store) ===== -->
 	<key>CFBundleIdentifier</key>
 	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>

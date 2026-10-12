@@ -149,7 +149,7 @@ enum OnboardingPopover {
 
     /// First beat: the shortcut as two keycaps, and nothing to click.
     private static func makeTryItView() -> NSView {
-        let title = OnboardingLayout.title(NSLocalizedString("AltTab is ready", comment: "Onboarding popover"))
+        let title = OnboardingLayout.title(NSLocalizedString("Switcheroo is ready", comment: "Onboarding popover"))
         let hold = KeycapWithCaption(NSLocalizedString("hold", comment: "Onboarding popover, above the key to keep down"), OnboardingLayout.holdGlyphs)
         let plus = OnboardingLayout.plusSign()
         let press = KeycapWithCaption(NSLocalizedString("press", comment: "Onboarding popover, above the key to press"), OnboardingLayout.nextGlyphs)
@@ -306,7 +306,7 @@ private class TrialCard: NSView {
         layer!.cornerRadius = 8
         layer!.masksToBounds = true
         layer!.addSublayer(gradient)
-        let title = NSTextField(wrappingLabelWithString: String(format: NSLocalizedString("%d days of AltTab Pro, starting now", comment: "Onboarding popover; %d is the trial length in days"), days))
+        let title = NSTextField(wrappingLabelWithString: String(format: NSLocalizedString("%d days of Switcheroo Pro, starting now", comment: "Onboarding popover; %d is the trial length in days"), days))
         title.translatesAutoresizingMaskIntoConstraints = false
         title.font = .systemFont(ofSize: 12, weight: .semibold)
         let body = NSTextField(wrappingLabelWithString: NSLocalizedString("Everything is unlocked while it runs. After that, the switcher keeps working exactly as it does now, and the Pro extras step back.", comment: "Onboarding popover, under the trial announcement"))

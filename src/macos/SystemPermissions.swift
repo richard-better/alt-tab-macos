@@ -97,7 +97,7 @@ class SystemPermissions {
 
     private static func checkPermissionsPostStartup() {
         if AccessibilityPermission.status == .notGranted {
-            Logger.error { "Accessibility permission revoked while AltTab was running; restarting" }
+            Logger.error { "Accessibility permission revoked while Switcheroo was running; restarting" }
             DispatchQueue.main.async { App.restart() }
         }
     }

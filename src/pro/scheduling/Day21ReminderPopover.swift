@@ -8,7 +8,7 @@ class Day21ReminderPopover {
         let popover = ProPromptPopover.make()
         let width = CGFloat(300)
         let container = ProPromptPopover.makeContainer(width: width, [
-            .init(view: ProPromptPopover.makeTitle(NSLocalizedString("AltTab Pro is still available", comment: "")),
+            .init(view: ProPromptPopover.makeTitle(NSLocalizedString("Switcheroo Pro is still available", comment: "")),
                 gapAbove: 0, width: .full),
             .init(view: ProPromptPopover.makeBody(ProConversionCopy.day21Body(), width: width),
                 gapAbove: 8, width: .full),

@@ -49,7 +49,7 @@ enum PreferencesPersistenceCheck {
         let (message, paths) = dialogContent(symlinkedPaths: symlinkedPaths, unwritablePaths: unwritablePaths)
         let alert = NSAlert()
         alert.alertStyle = .critical
-        alert.messageText = NSLocalizedString("Your settings reset every time AltTab restarts.", comment: "")
+        alert.messageText = NSLocalizedString("Your settings reset every time Switcheroo restarts.", comment: "")
         alert.informativeText = message
         // The path goes in a non-wrapping accessory label so it stays on one line; NSAlert widens to fit it.
         alert.accessoryView = pathLabel(paths)
@@ -71,9 +71,9 @@ enum PreferencesPersistenceCheck {
     /// replaces it is then under the user's control anyway.
     private static func dialogContent(symlinkedPaths: [String], unwritablePaths: [String]) -> (message: String, paths: [String]) {
         if !symlinkedPaths.isEmpty {
-            return (NSLocalizedString("AltTab preferences file is a symlink. macOS doesn’t support symlink for preferences. Please use a valid file instead of a symlink here:", comment: ""), symlinkedPaths)
+            return (NSLocalizedString("Switcheroo preferences file is a symlink. macOS doesn’t support symlink for preferences. Please use a valid file instead of a symlink here:", comment: ""), symlinkedPaths)
         }
-        return (NSLocalizedString("AltTab preferences file isn’t writable by your account. Please fix ownership and permissions of the file here:", comment: ""), unwritablePaths)
+        return (NSLocalizedString("Switcheroo preferences file isn’t writable by your account. Please fix ownership and permissions of the file here:", comment: ""), unwritablePaths)
     }
 
     /// A selectable, non-wrapping label (one line per path) used as the alert's accessory, so a long path

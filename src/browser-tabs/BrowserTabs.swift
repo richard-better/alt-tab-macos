@@ -42,7 +42,7 @@ struct BrowserTabsIssue: Codable, Equatable {
     let code: Int
     var message: String {
         if code == -1743 {
-            return "Allow AltTab to control \(browser.name) in System Settings > Privacy & Security > Automation."
+            return "Allow Switcheroo to control \(browser.name) in System Settings > Privacy & Security > Automation."
         }
         return "Could not read \(browser.name) tabs. Try refreshing."
     }

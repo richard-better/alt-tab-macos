@@ -111,7 +111,7 @@ class UpgradeTab {
 
     private static func makeHeaderStrip() -> NSStackView {
         let titleFont = NSFont.systemFont(ofSize: 15, weight: .medium)
-        let titleText = NSLocalizedString("AltTab Pro", comment: "")
+        let titleText = NSLocalizedString("Switcheroo Pro", comment: "")
         let titleAttr = NSMutableAttributedString(string: titleText, attributes: [
             .font: titleFont,
             .foregroundColor: NSColor.labelColor,
@@ -170,7 +170,7 @@ class UpgradeTab {
         table.addRow(leftText: NSLocalizedString("Manage activations, view receipts, etc", comment: ""), rightViews: [manageButton], isAddSeparator: false)
         let deactivateButton = NSButton(title: NSLocalizedString("Deactivate license", comment: ""), target: nil, action: nil)
         deactivateButton.onAction = { _ in deactivateLicense() }
-        let deactivateHint = TableGroupView.makeText(NSLocalizedString("License will remain valid and usable to activate AltTab on any machine", comment: ""))
+        let deactivateHint = TableGroupView.makeText(NSLocalizedString("License will remain valid and usable to activate Switcheroo on any machine", comment: ""))
         deactivateHint.textColor = .secondaryLabelColor
         table.addRow(leftViews: [TableGroupView.makeText(NSLocalizedString("Deactivate license on this machine", comment: ""))], rightViews: [deactivateButton], secondaryViews: [deactivateHint])
         return table

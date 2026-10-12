@@ -317,7 +317,7 @@ class SettingsWindow: NSWindow {
     private let sectionsDocumentView = SettingsFlippedView(frame: .zero)
     private let sectionsStack = NSStackView()
     private let upgradeButton = UpgradeButton()
-    private let quitButton = NSButton(title: String(format: NSLocalizedString("Quit %@", comment: "%@ is AltTab"), App.name), target: nil, action: #selector(NSApplication.terminate(_:)))
+    private let quitButton = NSButton(title: String(format: NSLocalizedString("Quit %@", comment: "%@ is Switcheroo"), App.name), target: nil, action: #selector(NSApplication.terminate(_:)))
     private var sections = [SettingsSection]()
     private var visibleSections = [SettingsSection]()
     private var selectedSectionId: String?

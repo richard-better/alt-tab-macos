@@ -1,10 +1,10 @@
-# AltTab with browser tabs
+# Switcheroo
 
 This fork adds a separate, searchable Safari and Google Chrome tab switcher.
 
-The app is named **AltTab Browser Tabs** and uses the bundle ID `me.richardb.window-switcher`. Its preferences, license preferences, Keychain service, login item and URL scheme are separate from upstream AltTab. Existing AltTab settings and licenses are not imported.
+The app is named **Switcheroo** and uses the bundle ID `me.richardb.window-switcher`. Its preferences, license preferences, Keychain service, login item and URL scheme are separate from upstream AltTab. Existing AltTab settings and licenses are not imported.
 
-- Press **Control-Option-Tab**, or choose **Browser tabs…** from AltTab's menu.
+- Press **Control-Option-Tab**, or choose **Browser tabs…** from Switcheroo's menu.
 - Type to search titles, URLs and browser names. Tab/Shift-Tab or the arrow keys select a result; Return activates it; Escape closes the panel. Releasing the shortcut modifiers leaves the panel open.
 - Change the shortcut under **Settings > Controls > Additional controls > Show browser tabs**.
 - Allow browser Automation access when macOS asks. The panel includes an Automation settings button and an explicit Refresh button.

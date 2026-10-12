@@ -5,7 +5,10 @@
 "%@ — last seen %@" = "%1$@ — last seen %2$@";
 
 /* Onboarding popover; %d is the trial length in days */
-"%d days of AltTab Pro, starting now" = "%d days of AltTab Pro, starting now";
+"%d days of Switcheroo Pro, starting now" = "%d days of Switcheroo Pro, starting now";
+
+/* No comment provided by engineer. */
+"%d tabs" = "%d tabs";
 
 /* No comment provided by engineer. */
 "3-finger Horizontal Swipe" = "3-finger Horizontal Swipe";
@@ -26,9 +29,9 @@
 "A debug profile (versions, settings, hardware) is attached to help diagnose the issue." = "A debug profile (versions, settings, hardware) is attached to help diagnose the issue.";
 
 /* No comment provided by engineer. */
-"A new version of AltTab is available" = "A new version of AltTab is available";
+"A new version of Switcheroo is available" = "A new version of Switcheroo is available";
 
-/* Menubar option. %@ is AltTab */
+/* Menubar option. %@ is Switcheroo */
 "About %@" = "About %@";
 
 /* No comment provided by engineer. */
@@ -84,45 +87,6 @@
 
 /* No comment provided by engineer. */
 "Alphabetical Order" = "Alphabetical Order";
-
-/* No comment provided by engineer. */
-"AltTab crashed last time you used it. Sending a crash report will help get the issue fixed" = "AltTab crashed last time you used it. Sending a crash report will help get the issue fixed";
-
-/* No comment provided by engineer. */
-"AltTab is a free, open-source window switcher for macOS. Pro features are available with a 14-day free trial." = "AltTab is a free, open-source window switcher for macOS. Pro features are available with a 14-day free trial.";
-
-/* Onboarding popover */
-"AltTab is ready" = "AltTab is ready";
-
-/* Menubar callout. %@ is one or more feature names, e.g. Thumbnails */
-"AltTab is running without Screen Recording permissions. %@ won’t show." = "AltTab is running without Screen Recording permissions. %@ won’t show.";
-
-/* No comment provided by engineer. */
-"AltTab preferences file is a symlink. macOS doesn’t support symlink for preferences. Please use a valid file instead of a symlink here:" = "AltTab preferences file is a symlink. macOS doesn’t support symlink for preferences. Please use a valid file instead of a symlink here:";
-
-/* No comment provided by engineer. */
-"AltTab preferences file isn’t writable by your account. Please fix ownership and permissions of the file here:" = "AltTab preferences file isn’t writable by your account. Please fix ownership and permissions of the file here:";
-
-/* No comment provided by engineer. */
-"AltTab Pro" = "AltTab Pro";
-
-/* No comment provided by engineer. */
-"AltTab Pro adds 4 features beyond the free switcher." = "AltTab Pro adds 4 features beyond the free switcher.";
-
-/* No comment provided by engineer. */
-"AltTab Pro is still available" = "AltTab Pro is still available";
-
-/* Permissions window title */
-"AltTab requires some permissions" = "AltTab requires some permissions";
-
-/* Permissions window */
-"AltTab requires this permission to focus windows for you." = "AltTab requires this permission to focus windows for you.";
-
-/* Permissions window */
-"AltTab requires this permission to show you pictures of each window." = "AltTab requires this permission to show you pictures of each window.";
-
-/* No comment provided by engineer. */
-"AltTab will show if the window is currently minimized or fullscreen with a status icon." = "AltTab will show if the window is currently minimized or fullscreen with a status icon.";
 
 /* No comment provided by engineer. */
 "Always" = "Always";
@@ -203,10 +167,22 @@
 "Automatic activation failed" = "Automatic activation failed";
 
 /* No comment provided by engineer. */
+"Automation settings…" = "Automation settings…";
+
+/* No comment provided by engineer. */
 "Brief description of the bug" = "Brief description of the bug";
 
 /* No comment provided by engineer. */
 "Brief description of the change" = "Brief description of the change";
+
+/* No comment provided by engineer. */
+"Browser tabs" = "Browser tabs";
+
+/* No comment provided by engineer. */
+"Browser tabs could not be read. Check Automation permissions and try Refresh." = "Browser tabs could not be read. Check Automation permissions and try Refresh.";
+
+/* No comment provided by engineer. */
+"Browser tabs…" = "Browser tabs…";
 
 /* No comment provided by engineer. */
 "Bundle ID" = "Bundle ID";
@@ -380,7 +356,7 @@
 "Gesture" = "Gesture";
 
 /* No comment provided by engineer. */
-"Get more from AltTab with Pro" = "Get more from AltTab with Pro";
+"Get more from Switcheroo with Pro" = "Get more from Switcheroo with Pro";
 
 /* Menubar option */
 "Get Pro" = "Get Pro";
@@ -399,7 +375,7 @@
 "Group tabs" = "Group tabs";
 
 /* No comment provided by engineer. */
-"Help improve AltTab" = "Help improve AltTab";
+"Help improve Switcheroo" = "Help improve Switcheroo";
 
 /* No comment provided by engineer. */
 "Hide" = "Hide";
@@ -462,7 +438,7 @@
 "License doesn't cover this version" = "License doesn't cover this version";
 
 /* No comment provided by engineer. */
-"License will remain valid and usable to activate AltTab on any machine" = "License will remain valid and usable to activate AltTab on any machine";
+"License will remain valid and usable to activate Switcheroo on any machine" = "License will remain valid and usable to activate Switcheroo on any machine";
 
 /* No comment provided by engineer. */
 "Light" = "Light";
@@ -471,7 +447,7 @@
 "Machine %@" = "Machine %@";
 
 /* No comment provided by engineer. */
-"macOS reserves ⌘⌥⎋, ⌘⌥⇧⎋, and ⌘⌥⇧⌃⎋ for Force Quit and they cannot be unbound. AltTab cannot use them.\n\nYour change would assign one of these to: %@." = "macOS reserves ⌘⌥⎋, ⌘⌥⇧⎋, and ⌘⌥⇧⌃⎋ for Force Quit and they cannot be unbound. AltTab cannot use them.\n\nYour change would assign one of these to: %@.";
+"macOS reserves ⌘⌥⎋, ⌘⌥⇧⎋, and ⌘⌥⇧⌃⎋ for Force Quit and they cannot be unbound. Switcheroo cannot use them.\n\nYour change would assign one of these to: %@." = "macOS reserves ⌘⌥⎋, ⌘⌥⇧⎋, and ⌘⌥⇧⌃⎋ for Force Quit and they cannot be unbound. Switcheroo cannot use them.\n\nYour change would assign one of these to: %@.";
 
 /* No comment provided by engineer. */
 "Manage activations, view receipts, etc" = "Manage activations, view receipts, etc";
@@ -516,7 +492,13 @@
 "Next" = "Next";
 
 /* No comment provided by engineer. */
+"No matching tabs." = "No matching tabs.";
+
+/* No comment provided by engineer. */
 "No response from server." = "No response from server.";
+
+/* No comment provided by engineer. */
+"No tabs found. Open Safari or Google Chrome, then Refresh." = "No tabs found. Open Safari or Google Chrome, then Refresh.";
 
 /* No comment provided by engineer. */
 "No thanks — don't ask again" = "No thanks — don't ask again";
@@ -561,7 +543,7 @@
 "Pick a machine to deactivate so you can activate here." = "Pick a machine to deactivate so you can activate here.";
 
 /* LetsMove replacement alert */
-"Please drag AltTab into the Applications folder manually." = "Please drag AltTab into the Applications folder manually.";
+"Please drag Switcheroo into the Applications folder manually." = "Please drag Switcheroo into the Applications folder manually.";
 
 /* No comment provided by engineer. */
 "Please fill in the form" = "Please fill in the form";
@@ -602,17 +584,23 @@
 /* No comment provided by engineer. */
 "Pro Lifetime license activated for %@" = "Pro Lifetime license activated for %@";
 
-/* %@ is AltTab */
+/* %@ is Switcheroo */
 "Quit %@" = "Quit %@";
 
 /* No comment provided by engineer. */
 "Quit app" = "Quit app";
 
 /* No comment provided by engineer. */
+"Reading Safari and Chrome tabs…" = "Reading Safari and Chrome tabs…";
+
+/* No comment provided by engineer. */
 "Recently Created First" = "Recently Created First";
 
 /* No comment provided by engineer. */
 "Recently Focused First" = "Recently Focused First";
+
+/* No comment provided by engineer. */
+"Refresh" = "Refresh";
 
 /* No comment provided by engineer. */
 "Reliable, fast window switching with high-quality thumbnails" = "Reliable, fast window switching with high-quality thumbnails";
@@ -645,13 +633,19 @@
 "Screen Recording" = "Screen Recording";
 
 /* No comment provided by engineer. */
-"Screen showing AltTab" = "Screen showing AltTab";
+"Screen showing Switcheroo" = "Screen showing Switcheroo";
 
 /* No comment provided by engineer. */
 "Search" = "Search";
 
 /* No comment provided by engineer. */
+"Search browser tabs" = "Search browser tabs";
+
+/* No comment provided by engineer. */
 "Search is a Pro feature." = "Search is a Pro feature.";
+
+/* No comment provided by engineer. */
+"Search tab titles, addresses or browsers" = "Search tab titles, addresses or browsers";
 
 /* No comment provided by engineer. */
 "Search windows by typing" = "Search windows by typing";
@@ -718,6 +712,9 @@
 
 /* No comment provided by engineer. */
 "Show at the end" = "Show at the end";
+
+/* No comment provided by engineer. */
+"Show browser tabs" = "Show browser tabs";
 
 /* No comment provided by engineer. */
 "Show details (for support)" = "Show details (for support)";
@@ -798,6 +795,48 @@
 "Switch between 3 different styles. You can customize them." = "Switch between 3 different styles. You can customize them.";
 
 /* No comment provided by engineer. */
+"Switcheroo crashed last time you used it. Sending a crash report will help get the issue fixed" = "Switcheroo crashed last time you used it. Sending a crash report will help get the issue fixed";
+
+/* No comment provided by engineer. */
+"Switcheroo is a free, open-source window switcher for macOS. Pro features are available with a 14-day free trial." = "Switcheroo is a free, open-source window switcher for macOS. Pro features are available with a 14-day free trial.";
+
+/* Onboarding popover */
+"Switcheroo is ready" = "Switcheroo is ready";
+
+/* Menubar callout. %@ is one or more feature names, e.g. Thumbnails */
+"Switcheroo is running without Screen Recording permissions. %@ won’t show." = "Switcheroo is running without Screen Recording permissions. %@ won’t show.";
+
+/* No comment provided by engineer. */
+"Switcheroo preferences file is a symlink. macOS doesn’t support symlink for preferences. Please use a valid file instead of a symlink here:" = "Switcheroo preferences file is a symlink. macOS doesn’t support symlink for preferences. Please use a valid file instead of a symlink here:";
+
+/* No comment provided by engineer. */
+"Switcheroo preferences file isn’t writable by your account. Please fix ownership and permissions of the file here:" = "Switcheroo preferences file isn’t writable by your account. Please fix ownership and permissions of the file here:";
+
+/* No comment provided by engineer. */
+"Switcheroo Pro" = "Switcheroo Pro";
+
+/* No comment provided by engineer. */
+"Switcheroo Pro adds 4 features beyond the free switcher." = "Switcheroo Pro adds 4 features beyond the free switcher.";
+
+/* No comment provided by engineer. */
+"Switcheroo Pro is still available" = "Switcheroo Pro is still available";
+
+/* Permissions window title */
+"Switcheroo requires some permissions" = "Switcheroo requires some permissions";
+
+/* Permissions window */
+"Switcheroo requires this permission to focus windows for you." = "Switcheroo requires this permission to focus windows for you.";
+
+/* Permissions window */
+"Switcheroo requires this permission to show you pictures of each window." = "Switcheroo requires this permission to show you pictures of each window.";
+
+/* No comment provided by engineer. */
+"Switcheroo will show if the window is currently minimized or fullscreen with a status icon." = "Switcheroo will show if the window is currently minimized or fullscreen with a status icon.";
+
+/* No comment provided by engineer. */
+"Switching to tab…" = "Switching to tab…";
+
+/* No comment provided by engineer. */
 "Sync with global value" = "Sync with global value";
 
 /* No comment provided by engineer. */
@@ -805,6 +844,9 @@
 
 /* No comment provided by engineer. */
 "System Default" = "System Default";
+
+/* No comment provided by engineer. */
+"Tab or arrows to select · Return to switch · Escape to close" = "Tab or arrows to select · Return to switch · Escape to close";
 
 /* Onboarding popover, once the shortcut was used */
 "That's it" = "That's it";
@@ -832,6 +874,9 @@
 
 /* No comment provided by engineer. */
 "This license is already activated on the maximum number of machines. Deactivate one to continue." = "This license is already activated on the maximum number of machines. Deactivate one to continue.";
+
+/* No comment provided by engineer. */
+"This tab changed or closed. Refresh the list and select it again." = "This tab changed or closed. Refresh the list and select it again.";
 
 /* LetsMove replacement alert */
 "This will keep your Downloads folder uncluttered." = "This will keep your Downloads folder uncluttered.";
@@ -966,7 +1011,7 @@
 "You can’t undo this action." = "You can’t undo this action.";
 
 /* No comment provided by engineer. */
-"You have 14 days to try all Pro features. After that, Pro features will step back and the core window switcher will keep working exactly as before.\n\nAltTab stays free and open-source. Pro is an optional one-time purchase that funds continued development." = "You have 14 days to try all Pro features. After that, Pro features will step back and the core window switcher will keep working exactly as before.\n\nAltTab stays free and open-source. Pro is an optional one-time purchase that funds continued development.";
+"You have 14 days to try all Pro features. After that, Pro features will step back and the core window switcher will keep working exactly as before.\n\nSwitcheroo stays free and open-source. Pro is an optional one-time purchase that funds continued development." = "You have 14 days to try all Pro features. After that, Pro features will step back and the core window switcher will keep working exactly as before.\n\nSwitcheroo stays free and open-source. Pro is an optional one-time purchase that funds continued development.";
 
 /* No comment provided by engineer. */
 "You may need to disable some conflicting system gestures" = "You may need to disable some conflicting system gestures";
@@ -984,10 +1029,10 @@
 "You've been using %d Pro features.\nThey'll switch back to defaults on Day 15." = "You've been using %d Pro features.\nThey'll switch back to defaults on Day 15.";
 
 /* No comment provided by engineer. */
-"You've used AltTab %@ times — %@ of those used Pro features." = "You've used AltTab %1$@ times — %2$@ of those used Pro features.";
+"You've used Switcheroo %@ times - %@ of those used Pro features." = "You've used Switcheroo %1$@ times - %2$@ of those used Pro features.";
 
 /* No comment provided by engineer. */
-"You've used AltTab %@ times." = "You've used AltTab %@ times.";
+"You've used Switcheroo %@ times." = "You've used Switcheroo %@ times.";
 
 /* No comment provided by engineer. */
 "Your 14-day Pro trial just ended" = "Your 14-day Pro trial just ended";
@@ -1002,7 +1047,7 @@
 "Your Pro trial ends in 2 days" = "Your Pro trial ends in 2 days";
 
 /* No comment provided by engineer. */
-"Your settings reset every time AltTab restarts." = "Your settings reset every time AltTab restarts.";
+"Your settings reset every time Switcheroo restarts." = "Your settings reset every time Switcheroo restarts.";
 
 /* No comment provided by engineer. */
 "Your trial includes Pro features" = "Your trial includes Pro features";

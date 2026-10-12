@@ -23,7 +23,7 @@ class ProPromptWindow: NSWindow {
         var mask: NSWindow.StyleMask = [.titled, .closable, .fullSizeContentView]
         if miniaturizable { mask.insert(.miniaturizable) }
         self.init(contentRect: NSRect(origin: .zero, size: size), styleMask: mask, backing: .buffered, defer: false)
-        title = NSLocalizedString("AltTab Pro", comment: "")
+        title = NSLocalizedString("Switcheroo Pro", comment: "")
         titleVisibility = .hidden
         titlebarAppearsTransparent = true
         standardWindowButton(.closeButton)?.isHidden = true

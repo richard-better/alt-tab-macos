@@ -22,8 +22,8 @@ class Day1WelcomeLetterWindow: ProPromptWindow {
         let header = ProPromptHeader(title: String(format: titleFormat, App.name), size: .large)
 
         let messageText = isFresh
-            ? NSLocalizedString("AltTab is a free, open-source window switcher for macOS. Pro features are available with a 14-day free trial.", comment: "")
-            : NSLocalizedString("You have 14 days to try all Pro features. After that, Pro features will step back and the core window switcher will keep working exactly as before.\n\nAltTab stays free and open-source. Pro is an optional one-time purchase that funds continued development.", comment: "")
+            ? NSLocalizedString("Switcheroo is a free, open-source window switcher for macOS. Pro features are available with a 14-day free trial.", comment: "")
+            : NSLocalizedString("You have 14 days to try all Pro features. After that, Pro features will step back and the core window switcher will keep working exactly as before.\n\nSwitcheroo stays free and open-source. Pro is an optional one-time purchase that funds continued development.", comment: "")
         let message = NSTextField(wrappingLabelWithString: messageText)
         message.font = .systemFont(ofSize: 14)
         message.isSelectable = false

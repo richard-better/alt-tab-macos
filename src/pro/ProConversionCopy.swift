@@ -29,14 +29,14 @@ enum ProConversionCopy {
 
         if triggers > 0 && proCount > 0 {
             return String(format: NSLocalizedString(
-                "You've used AltTab %@ times — %@ of those used Pro features.",
+                "You've used Switcheroo %@ times - %@ of those used Pro features.",
                 comment: ""),
                 UsageStats.formatCount(triggers),
                 UsageStats.formatCount(proCount))
         }
         if triggers > 0 {
             return String(format: NSLocalizedString(
-                "You've used AltTab %@ times.",
+                "You've used Switcheroo %@ times.",
                 comment: ""),
                 UsageStats.formatCount(triggers))
         }

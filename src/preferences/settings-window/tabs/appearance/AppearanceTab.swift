@@ -170,7 +170,7 @@ class ShowHideIllustratedView {
     // duplicating `NSLocalizedString` calls. Each is the single source of truth for that row's
     // localized text; `setupItems` below uses these constants when building the rows.
     static let hideStatusIconsLabel = NSLocalizedString("Hide status icons", comment: "")
-    static let hideStatusIconsSubtitle = NSLocalizedString("AltTab will show if the window is currently minimized or fullscreen with a status icon.", comment: "")
+    static let hideStatusIconsSubtitle = NSLocalizedString("Switcheroo will show if the window is currently minimized or fullscreen with a status icon.", comment: "")
     static let hideSpaceNumberLabelsLabel = NSLocalizedString("Hide Space number labels", comment: "")
     static let hideColoredCirclesLabel = NSLocalizedString("Hide colored circles on mouse hover", comment: "")
 

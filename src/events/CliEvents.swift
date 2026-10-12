@@ -10,7 +10,7 @@ class CliEvents {
            let source = CFMessagePortCreateRunLoopSource(nil, messagePort, 0) {
             CFRunLoopAddSource(BackgroundWork.cliEventsThread.runLoop, source, .commonModes)
         } else {
-            Logger.error { "Can't listen on message port. Is another AltTab already running?" }
+            Logger.error { "Can't listen on message port. Is another Switcheroo already running?" }
             // TODO: should we quit or restart here?
             // It's complex since AltTab can be restarted sometimes,
             // and the new instance may coexist with the old for some duration
@@ -579,11 +579,11 @@ class CliClient {
             var returnData: Unmanaged<CFData>?
             let status = CFMessagePortSendRequest(serverPortClient, 0, data as CFData, 2, 2, CFRunLoopMode.defaultMode.rawValue, &returnData)
             guard let responseData = returnData?.takeRetainedValue() as Data?, !responseData.isEmpty else {
-                fail("AltTab did not answer \(command) (CFMessagePortSendRequest status \(status), "
+                fail("Switcheroo did not answer \(command) (CFMessagePortSendRequest status \(status), "
                     + "\(returnData == nil ? "no reply" : "empty reply"))")
             }
             guard let response = String(data: responseData, encoding: .utf8) else {
-                fail("AltTab's answer to \(command) is \(responseData.count) bytes that are not text")
+                fail("Switcheroo's answer to \(command) is \(responseData.count) bytes that are not text")
             }
             guard response != "\"\(CliServer.error)\"" else {
                 fail("Couldn't execute command. Is it correct?")
@@ -593,7 +593,7 @@ class CliClient {
             }
             exit(0)
         } catch {
-            fail("AltTab.app needs to be running for CLI commands to work")
+            fail("Switcheroo.app needs to be running for CLI commands to work")
         }
     }
 

@@ -182,7 +182,7 @@ enum MoveToApplicationsFolder {
         let alert = NSAlert()
         alert.messageText = NSLocalizedString("Could not move to Applications folder", comment: "LetsMove replacement alert")
         if needsAdmin {
-            alert.informativeText = NSLocalizedString("Please drag AltTab into the Applications folder manually.", comment: "LetsMove replacement alert")
+            alert.informativeText = NSLocalizedString("Please drag Switcheroo into the Applications folder manually.", comment: "LetsMove replacement alert")
         }
         alert.runModal()
     }

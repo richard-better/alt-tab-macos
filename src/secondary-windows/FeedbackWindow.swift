@@ -92,7 +92,7 @@ class FeedbackWindow: NSWindow {
         appIcon.updateContents(.cgImage(App.appIcon), appIconSize)
         appIcon.fit(64, 64)
 
-        let subtitle = NSTextField(labelWithString: NSLocalizedString("Help improve AltTab", comment: ""))
+        let subtitle = NSTextField(labelWithString: NSLocalizedString("Help improve Switcheroo", comment: ""))
         subtitle.textColor = .secondaryLabelColor
         let headerText = StackView([
             BoldLabel(NSLocalizedString("Send feedback", comment: "")),
@@ -231,7 +231,7 @@ class FeedbackWindow: NSWindow {
     private func showUpdateAvailableAlert(item: SUAppcastItem) {
         let alert = NSAlert()
         alert.alertStyle = .informational
-        alert.messageText = NSLocalizedString("A new version of AltTab is available", comment: "")
+        alert.messageText = NSLocalizedString("A new version of Switcheroo is available", comment: "")
         let format = NSLocalizedString(
             "You're running v%1$@. v%2$@ is available. The bug you're seeing may already be fixed — please update first and check before reporting.",
             comment: "")

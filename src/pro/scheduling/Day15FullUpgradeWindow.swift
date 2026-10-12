@@ -21,7 +21,7 @@ class Day15FullUpgradeWindow: ProPromptWindow {
         let resolved = reason?.resolved ?? .nonEngaged
         if resolved == .nonEngaged || UsageStats.usedProFeaturesSessionCount == 0 {
             return NSLocalizedString(
-                "AltTab Pro adds 4 features beyond the free switcher.",
+                "Switcheroo Pro adds 4 features beyond the free switcher.",
                 comment: "")
         }
         let revertSentence = NSLocalizedString(
