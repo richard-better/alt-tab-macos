@@ -7,4 +7,5 @@ xcodebuild -project alt-tab-macos.xcodeproj -scheme Release -configuration Relea
   'ARCHS=arm64 x86_64' ONLY_ACTIVE_ARCH=NO \
   'CODE_SIGN_IDENTITY=Developer ID Application: Richard Borcsik (S64PDPJKMJ)' \
   DEVELOPMENT_TEAM=S64PDPJKMJ CODE_SIGN_STYLE=Manual | scripts/xcbeautify
-lipo "${XCODE_BUILD_PATH:-DerivedData/Build/Products/Release}/Switcheroo.app/Contents/MacOS/Switcheroo" -verify_arch arm64 x86_64
+binary="${XCODE_BUILD_PATH:-DerivedData/Build/Products/Release}/Switcheroo.app/Contents/MacOS/Switcheroo"
+for arch in arm64 x86_64; do lipo "$binary" -verify_arch "$arch"; done
