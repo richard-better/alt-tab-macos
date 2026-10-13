@@ -61,9 +61,9 @@
 
 	<!-- ===== Sparkle (auto-update framework — reads these directly from the bundle) ===== -->
 	<key>SUPublicEDKey</key>
-	<string>2e9SQOBoaKElchSa/4QDli/nvYkyuDNfynfzBF6vJK4=</string>
+	<string>is4fXND5vbs2BbHyBNaug/EXEZ68Z4cl9K0aSXWjksA=</string>
 	<key>ForkAppcastURL</key>
-	<string>https://raw.githubusercontent.com/richard-better/switcheroo/richard-patches/browser-tabs-appcast.xml</string>
+	<string>https://github.com/richard-better/switcheroo/releases/latest/download/appcast.xml</string>
 	<key>SUEnableAutomaticChecks</key>
 	<string>true</string>
 	<key>SUScheduledCheckInterval</key>

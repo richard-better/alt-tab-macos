@@ -3105,7 +3105,6 @@
 			isa = XCBuildConfiguration;
 			baseConfigurationReference = D04BA62D5EACAAAD7BCD3E79 /* release.xcconfig */;
 			buildSettings = {
-				DEVELOPMENT_TEAM = "${TEAM_ID}";
 			};
 			name = Release;
 		};

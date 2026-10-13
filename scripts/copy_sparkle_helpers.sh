@@ -5,9 +5,8 @@
 # The phase runs on every app build: Embed Frameworks can replace Sparkle while preserving
 # source timestamps, so timestamp-based helper outputs cannot detect an invalidated resource seal.
 #
-# Runs after Xcode's Embed Frameworks phase, before Xcode's final code-signing of AltTab.app:
-#   1. Copy Sparkle's prebuilt Updater.app + Autoupdate (already Developer ID-signed at
-#      vendor time by vendor/scripts/update_sparkle.sh) into Sparkle.framework/Versions/A/,
+# Runs after Xcode's Embed Frameworks phase, before Xcode's final code-signing of Switcheroo.app:
+#   1. Copy Sparkle's prebuilt Updater.app + Autoupdate into Sparkle.framework/Versions/A/,
 #      AND add the top-level Sparkle.framework/Autoupdate and /Updater.app symlinks. Sparkle's
 #      installer locates these via `-[NSBundle URLForAuxiliaryExecutable:]` which only walks the
 #      framework root — so the symlinks (or the files themselves at framework root, like
@@ -102,14 +101,13 @@ for plist in "$SPARKLE_VERSIONED/Resources/Info.plist" "$SPARKLE_PKG/Resources/I
     [ -f "$plist" ] && plutil -replace CFBundleIdentifier -string "org.sparkle-project.Sparkle" "$plist"
 done
 
-# Re-seal Sparkle.framework so its _CodeSignature/CodeResources reflects our CFBundleIdentifier
-# rewrite + the helper/resource copies above. We don't have to sign Updater.app / Autoupdate —
-# those are pre-signed with the maintainer's Developer ID at vendor time (see
-# vendor/scripts/update_sparkle.sh) and their seals deeper than --deep walks, so Xcode's final
-# pass on AltTab.app never touches them.
-# Why this can't be Xcode's --deep alone: Release adds --deep via release.xcconfig and Xcode does
-# re-seal Sparkle.framework, but Debug uses --timestamp=none without --deep, leaving the SPM
-# linker-signed adhoc seal in place — which then fails `codesign --verify --deep --strict`
-# because that seal references resources the framework no longer matches.
+# Sign nested helpers before sealing the framework. Resource copies and the bundle identifier
+# rewrite must finish before signing; the app target signs the containing app afterward.
 IDENT="${EXPANDED_CODE_SIGN_IDENTITY:-${CODE_SIGN_IDENTITY:--}}"
-codesign --force --sign "$IDENT" "$SPARKLE_FW"
+SIGN_FLAGS=(--timestamp=none)
+if [ "$CONFIGURATION" = Release ]; then
+    SIGN_FLAGS=(--timestamp --options runtime)
+    codesign --force --sign "$IDENT" "${SIGN_FLAGS[@]}" "$SPARKLE_VERSIONED/Autoupdate"
+    codesign --force --sign "$IDENT" "${SIGN_FLAGS[@]}" "$SPARKLE_VERSIONED/Updater.app"
+fi
+codesign --force --sign "$IDENT" "${SIGN_FLAGS[@]}" "$SPARKLE_FW"
