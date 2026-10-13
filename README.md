@@ -16,7 +16,7 @@ Chrome tabs are located by their native ID, even after moving between windows. S
 
 Build with `ai/build.sh`. Debug builds use Richard's Apple Development team so macOS can recognize the app across rebuilds and retain permission grants. Other developers can override `DEVELOPMENT_TEAM` in `config/local.xcconfig`. Install `DerivedData/Build/Products/Debug/Switcheroo.app` in `/Applications` before granting permissions. Use `ai/test.sh` to run tests. Detailed behavior is in [BrowserTabsSpecs.md](src/browser-tabs/BrowserTabsSpecs.md).
 
-The fork uses its own update feed, published with each GitHub release. [Release instructions](scripts/release/README.md) cover signing, notarization, automatic updates, and the Homebrew tap. The first release is pending. Upstream AltTab updates cannot replace Switcheroo through its feed. The original license and upstream information follow.
+The fork uses its own update feed, published with each GitHub release. [Release instructions](scripts/release/README.md) cover signing, notarization, automatic updates, and the Homebrew tap. The first release is `1.0.0`, based on AltTab `11.9.1`, and is pending publication. The [changelog](changelog.md) records the included upstream version and commit for each release. Upstream AltTab updates cannot replace Switcheroo through its feed. The original license and upstream information follow.
 
 ---
 

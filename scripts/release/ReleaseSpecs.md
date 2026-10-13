@@ -26,6 +26,8 @@ The ZIP's final bytes determine the appcast length, SHA-256 checksum, and Homebr
 
 The workflow uploads candidate artifacts before publication. Publication creates a draft release with the ZIP, appcast, checksum, and cask, then publishes it. The app checks `https://github.com/richard-better/switcheroo/releases/latest/download/appcast.xml`.
 
+Each `## <version>` entry in `changelog.md` records Switcheroo's changes and the included upstream version and commit. Metadata generation extracts that entry into `release-notes.md`, which supplies the GitHub release body. Missing or empty entries stop metadata generation. The inherited AltTab changelog is preserved in `docs/upstream-alt-tab-changelog.md`.
+
 ## Credential handling
 
 The production environment uses `APPLE_P12_CERTIFICATE`, `APPLE_P12_PASSWORD`, `APPLE_API_PRIVATE_KEY`, `APPLE_API_KEY_ID`, `APPLE_API_ISSUER`, and `SPARKLE_ED_PRIVATE_KEY`. Secrets are scoped to the steps that need them. Shell tracing stays disabled. The runner imports the certificate into a temporary keychain and deletes the keychain and temporary credentials even when the job fails.

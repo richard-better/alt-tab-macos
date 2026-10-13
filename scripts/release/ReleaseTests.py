@@ -27,9 +27,12 @@ class ReleaseTests(unittest.TestCase):
         self.signature = base64.b64encode(bytes(64)).decode()
         self.feed = self.root / "previous.xml"
         self.feed.write_text((metadata.ROOT / "browser-tabs-appcast.xml").read_text())
+        self.changelog = self.root / "changelog.md"
+        self.notes = "### Features\n\n- Switch browser tabs.\n\n### Upstream\n\nBased on AltTab 11.9.1, commit eb63ac15.\n"
+        self.changelog.write_text(f"# Switcheroo changelog\n\n## {self.version}\n\n{self.notes}\n## 1.0.0\n\nOlder notes.\n")
 
     def test_feed_and_cask_use_final_archive_bytes_and_fork_urls(self):
-        metadata.generate(self.version, self.archive, self.signature, self.feed)
+        metadata.generate(self.version, self.archive, self.signature, self.feed, self.changelog)
         enclosure = ET.parse(self.root / "appcast.xml").find("channel/item/enclosure")
         self.assertIn(f"/{metadata.REPOSITORY}/", enclosure.attrib["url"])
         self.assertIn(f"/switcheroo-v{self.version}/", enclosure.attrib["url"])
@@ -42,21 +45,34 @@ class ReleaseTests(unittest.TestCase):
         self.assertIn(f'version "{self.version}"', cask)
         self.assertNotIn("lwouis", cask)
 
+    def test_release_notes_copy_only_the_selected_changelog_entry_with_upstream_details(self):
+        metadata.generate(self.version, self.archive, self.signature, self.feed, self.changelog)
+        self.assertEqual((self.root / "release-notes.md").read_text(), self.notes)
+
+    def test_missing_or_empty_changelog_entry_stops_metadata_generation(self):
+        for contents in ["# Switcheroo changelog\n", f"## {self.version}\n\n## 1.0.0\n\nOlder notes.\n"]:
+            with self.subTest(contents=contents), self.assertRaisesRegex(ValueError, "changelog entry"):
+                self.changelog.write_text(contents)
+                metadata.generate(self.version, self.archive, self.signature, self.feed, self.changelog)
+            self.assertFalse((self.root / "appcast.xml").exists())
+            self.assertFalse((self.root / "release-notes.md").exists())
+
     def test_published_feed_preserves_older_compatible_releases(self):
-        metadata.generate(self.version, self.archive, self.signature, self.feed)
+        metadata.generate(self.version, self.archive, self.signature, self.feed, self.changelog)
         self.feed.write_bytes((self.root / "appcast.xml").read_bytes())
         newer = f"{metadata.version_tuple(self.version)[0] + 1}.0.0"
         archive = self.root / f"Switcheroo-{newer}.zip"
         archive.write_bytes(b"next release")
-        metadata.generate(newer, archive, self.signature, self.feed)
+        self.changelog.write_text(f"## {newer}\n\nNext release.\n\n" + self.changelog.read_text())
+        metadata.generate(newer, archive, self.signature, self.feed, self.changelog)
         versions = [node.attrib[f"{{{metadata.SPARKLE}}}version"] for node in ET.parse(self.root / "appcast.xml").findall("channel/item/enclosure")]
         self.assertEqual(versions, [newer, self.version])
 
     def test_reused_or_older_version_cannot_replace_published_feed(self):
-        metadata.generate(self.version, self.archive, self.signature, self.feed)
+        metadata.generate(self.version, self.archive, self.signature, self.feed, self.changelog)
         self.feed.write_bytes((self.root / "appcast.xml").read_bytes())
         with self.assertRaisesRegex(ValueError, "published appcast"):
-            metadata.generate(self.version, self.archive, self.signature, self.feed)
+            metadata.generate(self.version, self.archive, self.signature, self.feed, self.changelog)
 
     def test_accepts_current_version_and_rejects_older_or_untrusted_versions(self):
         metadata.validate_version(metadata.setting("CURRENT_PROJECT_VERSION"))
@@ -72,7 +88,7 @@ class ReleaseTests(unittest.TestCase):
             with self.subTest(signature=signature), self.assertRaises(ValueError):
                 metadata.generate(self.version, self.archive, signature, self.feed)
         with self.assertRaisesRegex(ValueError, "Archive name"):
-            metadata.generate(self.version, self.root / "wrong.zip", self.signature, self.feed)
+            metadata.generate(self.version, self.root / "wrong.zip", self.signature, self.feed, self.changelog)
         self.assertFalse((self.root / "switcheroo.rb").exists())
         self.assertFalse((self.root / "appcast.xml").exists())
 
@@ -176,6 +192,35 @@ elif name == "spctl":
                 result, commands = self.run_notarization(status, **environment)
                 self.assertNotEqual(result.returncode, 0)
                 self.assertEqual(sum(command[0] == "ditto" for command in commands), 1)
+
+
+class PublicationTests(unittest.TestCase):
+    def test_published_body_uses_prepared_changelog_notes(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            notes = "### Upstream\n\nAltTab 11.9.1, commit eb63ac15.\n"
+            (root / "release-notes.md").write_text(notes)
+            gh = root / "gh"
+            gh.write_text('''#!/usr/bin/env python3
+import json, os, pathlib, sys
+if sys.argv[1:3] == ["release", "create"]:
+    args = sys.argv[3:]
+    notes = pathlib.Path(args[args.index("--notes-file") + 1]).read_text()
+    pathlib.Path(os.environ["COMMAND_LOG"]).write_text(json.dumps({"args": args, "notes": notes}))
+''')
+            gh.chmod(0o755)
+            git = root / "git"
+            git.write_text("#!/usr/bin/env bash\nexit 1\n")
+            git.chmod(0o755)
+            log = root / "published.json"
+            environment = dict(os.environ, PATH=f"{root}:{os.environ['PATH']}", RELEASE_VERSION="1.0.0",
+                               RELEASE_DIR=str(root), GITHUB_SHA="a" * 40, COMMAND_LOG=str(log))
+            result = subprocess.run(["bash", "scripts/release/publish.sh"], cwd=metadata.ROOT,
+                                    env=environment, capture_output=True)
+            self.assertEqual(result.returncode, 0, result.stderr)
+            published = json.loads(log.read_text())
+            self.assertEqual(published["notes"], notes)
+            self.assertNotIn("--generate-notes", published["args"])
 
 
 if __name__ == "__main__":

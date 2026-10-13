@@ -41,7 +41,21 @@ def minimum_macos_symbol():
     return symbols[major]
 
 
-def generate(version, archive, signature, previous_feed):
+def release_notes(version, changelog):
+    lines = Path(changelog).read_text().splitlines()
+    heading = f"## {version}"
+    try:
+        start = lines.index(heading) + 1
+    except ValueError:
+        raise ValueError(f"Missing changelog entry for Switcheroo {version}") from None
+    end = next((i for i in range(start, len(lines)) if lines[i].startswith("## ")), len(lines))
+    notes = "\n".join(lines[start:end]).strip()
+    if not notes:
+        raise ValueError(f"Empty changelog entry for Switcheroo {version}")
+    return notes + "\n"
+
+
+def generate(version, archive, signature, previous_feed, changelog=ROOT / "changelog.md"):
     validate_version(version)
     macos_symbol = minimum_macos_symbol()
     if len(base64.b64decode(signature, validate=True)) != 64:
@@ -49,6 +63,7 @@ def generate(version, archive, signature, previous_feed):
     archive = Path(archive)
     if archive.name != f"Switcheroo-{version}.zip":
         raise ValueError("Archive name must match the release version")
+    notes = release_notes(version, changelog)
     feed = ET.parse(previous_feed)
     channel = feed.getroot().find("channel")
     if channel is None:
@@ -80,6 +95,7 @@ def generate(version, archive, signature, previous_feed):
     channel.insert(first_item, item)
     ET.indent(feed, space="  ")
     feed.write(archive.parent / "appcast.xml", encoding="utf-8", xml_declaration=True)
+    (archive.parent / "release-notes.md").write_text(notes)
     (archive.parent / "SHA256SUMS").write_text(f"{checksum}  {archive.name}\n")
     (archive.parent / "switcheroo.rb").write_text(f'''cask "switcheroo" do
   version "{version}"

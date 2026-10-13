@@ -16,6 +16,8 @@ The workflow creates a temporary keychain on the macOS runner. It does not need 
 
 Choose a version at least as high as `CURRENT_PROJECT_VERSION` in `config/base.xcconfig` and greater than every version already released. The first candidate for the current checkout is `1.0.0`.
 
+Add a `## <version>` entry to `changelog.md` before building. Describe Switcheroo's changes and include an Upstream section with the incorporated AltTab release and commit. The workflow uses this entry as the GitHub release notes. Preserve these details when incorporating future upstream updates.
+
 ```sh
 gh workflow run release.yml --repo richard-better/switcheroo --ref richard-patches -f version=1.0.0 -f publish=false
 ```
@@ -34,7 +36,7 @@ scripts/update_appcast.sh
 unset SPARKLE_ED_PRIVATE_KEY
 ```
 
-The scripts write the ZIP, notarization result, appcast, checksum, and Homebrew cask to `build/release`. Sign in with `gh auth login` before running `update_appcast.sh`; it downloads the published appcast and preserves its history.
+The scripts write the ZIP, notarization result, appcast, checksum, release notes, and Homebrew cask to `build/release`. Sign in with `gh auth login` before running `update_appcast.sh`; it downloads the published appcast and preserves its history.
 
 ## Publish the release
 
