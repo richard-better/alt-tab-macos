@@ -6,12 +6,11 @@ release_dir="${RELEASE_DIR:-build/release}"
 app="${XCODE_BUILD_PATH:-DerivedData/Build/Products/Release}/Switcheroo.app"
 [[ "$(/usr/libexec/PlistBuddy -c 'Print CFBundleVersion' "$app/Contents/Info.plist")" == "$RELEASE_VERSION" ]] || { echo 'Built app version does not match RELEASE_VERSION' >&2; exit 1; }
 [[ "$(/usr/libexec/PlistBuddy -c 'Print CFBundleIdentifier' "$app/Contents/Info.plist")" == me.richardb.window-switcher ]] || { echo 'Unexpected app bundle ID' >&2; exit 1; }
-identity="$(codesign -dv "$app" 2>&1)"
-printf '%s\n' "$identity" | grep -Fx 'TeamIdentifier=S64PDPJKMJ'
-printf '%s\n' "$identity" | grep -Fx 'Authority=Developer ID Application: Richard Borcsik (S64PDPJKMJ)'
+codesign --display --verbose=2 "$app"
+requirement='anchor apple generic and identifier "me.richardb.window-switcher" and certificate 1[field.1.2.840.113635.100.6.2.6] exists and certificate leaf[field.1.2.840.113635.100.6.1.13] exists and certificate leaf[subject.OU] = "S64PDPJKMJ"'
+codesign --verify --deep --strict --verbose=2 --test-requirement="=$requirement" "$app"
 mkdir -p "$release_dir"
 archive="$release_dir/Switcheroo-$RELEASE_VERSION.zip"
-codesign --verify --deep --strict --verbose=2 "$app"
 ditto -c -k --keepParent "$app" "$archive"
 notary_args=()
 if [[ -n "${NOTARY_KEYCHAIN_PROFILE:-}" ]]; then

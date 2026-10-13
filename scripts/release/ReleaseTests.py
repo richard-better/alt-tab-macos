@@ -116,8 +116,8 @@ name = pathlib.Path(sys.argv[0]).name
 args = sys.argv[1:]
 with open(os.environ["COMMAND_LOG"], "a") as log:
     log.write(json.dumps([name] + args) + "\\n")
-if name == "codesign" and "-dv" in args:
-    print("TeamIdentifier=S64PDPJKMJ\\nAuthority=Developer ID Application: Richard Borcsik (S64PDPJKMJ)", file=sys.stderr)
+if name == "codesign" and any(arg.startswith("--test-requirement=") for arg in args):
+    sys.exit(int(os.environ.get("REQUIREMENT_EXIT", "0")))
 elif name == "ditto":
     pathlib.Path(args[-1]).write_bytes(b"packaged app")
 elif name == "xcrun" and args[:2] == ["notarytool", "submit"]:
@@ -160,6 +160,11 @@ elif name == "spctl":
                 self.assertTrue((self.root / "release/notarization-log.json").exists())
                 self.assertFalse(any(command[:2] == ["xcrun", "stapler"] for command in commands))
                 self.assertEqual(sum(command[0] == "ditto" for command in commands), 1)
+
+    def test_wrong_signing_identity_never_reaches_notarization(self):
+        result, commands = self.run_notarization("Accepted", REQUIREMENT_EXIT="1")
+        self.assertNotEqual(result.returncode, 0)
+        self.assertFalse(any(command[0] in ["ditto", "xcrun"] for command in commands))
 
     def test_timeout_and_gatekeeper_rejection_never_produce_final_archive(self):
         for status, environment in [("In Progress", {"NOTARY_EXIT": "1"}), ("Accepted", {"GATEKEEPER_EXIT": "1"})]:

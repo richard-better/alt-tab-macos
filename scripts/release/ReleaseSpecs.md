@@ -4,6 +4,8 @@
 
 Release builds use `Developer ID Application: Richard Borcsik (S64PDPJKMJ)`, Team ID `S64PDPJKMJ`, and bundle ID `me.richardb.window-switcher`. These values stay stable across releases because permission grants and license Keychain access depend on the app's identity.
 
+Before notarization, `codesign --test-requirement` verifies the Apple trust anchor, Developer ID Application certificate type, Team ID, and signing identifier. Human-readable certificate names are diagnostic output. [Apple's code-signing requirements](https://developer.apple.com/documentation/technotes/tn3127-inside-code-signing-requirements) define the certificate OIDs used by this check.
+
 The build signs Sparkle's nested helpers, then its framework, then Switcheroo. Release signatures use hardened runtime and secure timestamps. Debug builds retain their development signing behavior.
 
 ## Release trigger
