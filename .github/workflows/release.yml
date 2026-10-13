@@ -1,0 +1,87 @@
+name: Switcheroo release
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Release version (for example, 11.9.2)
+        required: true
+        type: string
+      publish:
+        description: Publish to GitHub Releases after verification
+        default: false
+        type: boolean
+  push:
+    tags:
+      - 'switcheroo-v*'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: switcheroo-release
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: macos-15
+    timeout-minutes: 60
+    environment: production
+    permissions:
+      contents: write
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
+      XCODE_BUILD_PATH: DerivedData/Build/Products/Release
+      RELEASE_DIR: build/release
+      RELEASE_VERSION: ${{ inputs.version }}
+      RELEASE_REF: ${{ github.ref_name }}
+      RELEASE_EVENT: ${{ github.event_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+          persist-credentials: false
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.13'
+      - name: Validate release version
+        run: |
+          if [[ "$RELEASE_EVENT" == push ]]; then RELEASE_VERSION="${RELEASE_REF#switcheroo-v}"; fi
+          python3 scripts/release/metadata.py validate "$RELEASE_VERSION"
+          echo "RELEASE_VERSION=$RELEASE_VERSION" >> "$GITHUB_ENV"
+          xcodebuild -version
+      - name: Test release tooling
+        run: python3 scripts/release/ReleaseTests.py
+      - name: Test app
+        run: bash ai/test.sh
+      - name: Import distribution certificate
+        env:
+          APPLE_P12_CERTIFICATE: ${{ secrets.APPLE_P12_CERTIFICATE }}
+          APPLE_P12_PASSWORD: ${{ secrets.APPLE_P12_PASSWORD }}
+        run: scripts/release/setup_signing.sh
+      - name: Build universal app
+        run: scripts/build_app.sh
+      - name: Notarize and verify
+        env:
+          APPLE_API_PRIVATE_KEY: ${{ secrets.APPLE_API_PRIVATE_KEY }}
+          APPLE_API_KEY_ID: ${{ secrets.APPLE_API_KEY_ID }}
+          APPLE_API_ISSUER: ${{ secrets.APPLE_API_ISSUER }}
+        run: scripts/package_and_notarize_release.sh
+      - name: Prepare update feed and Homebrew cask
+        env:
+          SPARKLE_ED_PRIVATE_KEY: ${{ secrets.SPARKLE_ED_PRIVATE_KEY }}
+        run: scripts/update_appcast.sh
+      - uses: actions/upload-artifact@v7
+        with:
+          name: Switcheroo-${{ env.RELEASE_VERSION }}
+          path: build/release/
+          if-no-files-found: error
+      - name: Publish verified release
+        if: github.event_name == 'push' || inputs.publish
+        run: scripts/release/publish.sh
+      - name: Remove temporary signing keychain
+        if: always()
+        run: |
+          if [[ -n "${RELEASE_KEYCHAIN:-}" ]]; then security delete-keychain "$RELEASE_KEYCHAIN"; fi
+          rm -rf "$RUNNER_TEMP/switcheroo-signing"
