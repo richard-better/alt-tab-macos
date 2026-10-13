@@ -188,7 +188,7 @@ class ControlsTab {
         "holdShortcut2": ATShortcut(Shortcut(keyEquivalent: "⌥")!, "holdShortcut2", .global, .up, 1),
         "holdShortcut3": ATShortcut(Shortcut(keyEquivalent: "⌥")!, "holdShortcut3", .global, .up, 2),
         "nextWindowShortcut": ATShortcut(Shortcut(keyEquivalent: "⇥")!, "nextWindowShortcut", .global, .down),
-        "nextWindowShortcut2": ATShortcut(Shortcut(keyEquivalent: "`")!, "nextWindowShortcut2", .global, .down),
+        "nextWindowShortcut2": ATShortcut(Shortcut(code: .ansiGrave, modifierFlags: [], characters: "`", charactersIgnoringModifiers: "`"), "nextWindowShortcut2", .global, .down),
         "→": ATShortcut(Shortcut(keyEquivalent: "→")!, "→", .local, .down),
         "←": ATShortcut(Shortcut(keyEquivalent: "←")!, "←", .local, .down),
         "↑": ATShortcut(Shortcut(keyEquivalent: "↑")!, "↑", .local, .down),

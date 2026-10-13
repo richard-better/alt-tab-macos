@@ -86,7 +86,7 @@ final class CustomRecorderControlTests: XCTestCase {
         ControlsTab.shortcuts = ControlsTab.defaultShortcuts
         ControlsTab.shortcuts["holdShortcut"] = ATShortcut(Shortcut(keyEquivalent: "⌘")!, "holdShortcut", .global, .up, 0)
         ControlsTab.shortcuts["nextWindowShortcut"] = ATShortcut(Shortcut(keyEquivalent: "⌘⎋")!, "nextWindowShortcut", .global, .down)
-        ControlsTab.shortcuts["nextWindowShortcut2"] = ATShortcut(Shortcut(keyEquivalent: "⌥`")!, "nextWindowShortcut2", .global, .down)
+        ControlsTab.shortcuts["nextWindowShortcut2"] = ATShortcut(Shortcut(code: .ansiGrave, modifierFlags: .option, characters: "`", charactersIgnoringModifiers: "`"), "nextWindowShortcut2", .global, .down)
         defer { ControlsTab.shortcuts = ControlsTab.defaultShortcuts }
         // the edit the reporter couldn't make: S2's hold ⌥ -> ⌘, giving them ⌘`
         XCTAssertEqual(CustomRecorderControlTestable.isShortcutAcceptable("holdShortcut2", Shortcut(keyEquivalent: "⌘")!), .accepted)
