@@ -1,6 +1,8 @@
 import Cocoa
 
 class PreferencesMigrations {
+    // Preference schemas track upstream migrations independently of Switcheroo release numbers.
+    static let schemaVersion = "11.9.1"
     /// Injectable so tests can run migrations against an isolated `UserDefaults` suite.
     /// Production keeps `.standard`; behavior is unchanged.
     static var defaults = UserDefaults.standard
@@ -18,13 +20,15 @@ class PreferencesMigrations {
         let preferencesKey = "preferencesVersion"
         let existingVersion = Self.defaults.string(forKey: preferencesKey)
         ProTransitionState.markFreshInstallIfUnknown(existingVersion == nil)
-        if let versionInPlist = existingVersion {
-            if versionInPlist != "#VERSION#" && versionInPlist.compare(App.version, options: .numeric) != .orderedDescending {
-                updateToNewPreferences(versionInPlist)
-            }
-        }
+        migrateLegacyPreferences(existingVersion)
         migrateToTitlesOnly()
-        Self.defaults.set(App.version, forKey: preferencesKey)
+    }
+
+    static func migrateLegacyPreferences(_ existingVersion: String?) {
+        let versionInPlist = existingVersion ?? "#VERSION#"
+        guard versionInPlist == "#VERSION#" || versionInPlist.compare(schemaVersion, options: .numeric) != .orderedDescending else { return }
+        if versionInPlist != "#VERSION#" { updateToNewPreferences(versionInPlist) }
+        Self.defaults.set(schemaVersion, forKey: "preferencesVersion")
     }
 
     static func migrateToTitlesOnly() {
@@ -42,7 +46,7 @@ class PreferencesMigrations {
     }
 
     static func updateToNewPreferences(_ versionInPlist: String) {
-        Logger.debug { "App-version:\(App.version), Plist-version:\(versionInPlist)" }
+        Logger.debug { "Schema-version:\(schemaVersion), Plist-version:\(versionInPlist)" }
         for (version, migration) in [
             ("10.13.0", migrateGroupingToPerShortcut),
             ("10.12.0", migrateExceptionsTitleArray),

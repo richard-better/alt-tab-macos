@@ -29,8 +29,8 @@ def setting(name):
 
 
 def validate_version(version):
-    if version_tuple(version) <= version_tuple(setting("CURRENT_PROJECT_VERSION")):
-        raise ValueError("Release version must exceed the development build's CURRENT_PROJECT_VERSION")
+    if version_tuple(version) < version_tuple(setting("CURRENT_PROJECT_VERSION")):
+        raise ValueError("Release version must match or exceed the development build's CURRENT_PROJECT_VERSION")
 
 
 def minimum_macos_symbol():

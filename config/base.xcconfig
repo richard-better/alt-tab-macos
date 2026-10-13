@@ -2,7 +2,7 @@
 
 PRODUCT_NAME = Switcheroo
 PRODUCT_BUNDLE_IDENTIFIER = me.richardb.window-switcher
-CURRENT_PROJECT_VERSION = 11.9.1
+CURRENT_PROJECT_VERSION = 1.0.0
 // 12.0 is the lowest target current Xcode supports. 0.15% of monthly users were below it when it
 // was set (appcast analytics, 2026-08), and the appcast's sparkle:minimumSystemVersion holds those
 // users on the last compatible build rather than breaking them.

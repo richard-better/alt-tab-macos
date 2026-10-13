@@ -12,7 +12,7 @@ The build signs Sparkle's nested helpers, then its framework, then Switcheroo. R
 
 The `Switcheroo release` workflow accepts a numeric `major.minor.patch` version through `workflow_dispatch`. It produces a candidate artifact by default. Setting `publish=true` publishes a release after every verification step passes. Pushing `switcheroo-v<version>` also publishes that version. Ordinary branch pushes do not publish releases.
 
-Versions exceed both `CURRENT_PROJECT_VERSION` and every version in the previously published appcast. A tag that already points to another commit cannot identify a release. Existing releases are not overwritten by retries.
+Switcheroo's version history starts at `1.0.0`, independently of AltTab's versions. Both app version fields use the Switcheroo release version. Versions match or exceed `CURRENT_PROJECT_VERSION` and exceed every version in the previously published appcast. A tag that already points to another commit cannot identify a release. Existing releases are not overwritten by retries.
 
 ## Verification and publication
 

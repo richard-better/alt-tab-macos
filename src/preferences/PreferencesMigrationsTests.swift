@@ -2,9 +2,9 @@ import Cocoa
 import XCTest
 
 /// Pins the `UserDefaults` transforms in `PreferencesMigrations`. These run on every app upgrade,
-/// so a regression here silently corrupts real users' settings — the highest-value safety net in
+/// so a regression here silently corrupts real users' settings, the highest-value safety net in
 /// the suite. Each test seeds the "old" keys in an isolated `UserDefaults` suite (injected via
-/// `PreferencesMigrations.defaults`), runs ONE migration, and asserts the resulting keys + removals.
+/// `PreferencesMigrations.defaults`), checks each transform, and verifies repeated launches.
 ///
 /// `migrateLoginItem` is intentionally NOT covered: it mutates real Login Items via deprecated
 /// LaunchServices APIs.
@@ -26,6 +26,31 @@ final class PreferencesMigrationsTests: XCTestCase {
         PreferencesMigrations.defaults = .standard
         TestDefaults.tearDown(defaults, suiteName)
         super.tearDown()
+    }
+
+    func testLaunchPreservesNewerPreferenceSchemaAcrossRepeatedLaunches() {
+        defaults.set("11.9.2", forKey: "preferencesVersion")
+        defaults.set("5", forKey: "language")
+        PreferencesMigrations.migratePreferences()
+        PreferencesMigrations.migratePreferences()
+        XCTAssertEqual(defaults.string(forKey: "preferencesVersion"), "11.9.2")
+        XCTAssertEqual(defaults.string(forKey: "language"), "5")
+    }
+
+    func testFreshInstallRecordsPreferenceSchemaInsteadOfAppVersion() {
+        PreferencesMigrations.migratePreferences()
+        XCTAssertEqual(defaults.string(forKey: "preferencesVersion"), "11.9.1")
+    }
+
+    func testLegacySchemaUpgradeRunsOnceAndPreservesLaterLanguageChanges() {
+        defaults.set("10.11.0", forKey: "preferencesVersion")
+        defaults.set("5", forKey: "language")
+        PreferencesMigrations.migratePreferences()
+        XCTAssertEqual(defaults.string(forKey: "language"), "2")
+        XCTAssertEqual(defaults.string(forKey: "preferencesVersion"), "11.9.1")
+        defaults.set("5", forKey: "language")
+        PreferencesMigrations.migratePreferences()
+        XCTAssertEqual(defaults.string(forKey: "language"), "5")
     }
 
     func testTitlesOnlyMigrationRemovesLegacyStylesAndCapturesFromEveryShortcut() {
@@ -390,11 +415,7 @@ enum ShowHowPreference {
     }
 }
 
-// App-only singletons referenced by `migratePreferences()` (not exercised by the per-migration tests)
-
-extension App {
-    static let version = "99.99.99"
-}
+// App-only singleton referenced by the launch migration tests.
 
 enum ProTransitionState {
     static func markFreshInstallIfUnknown(_ value: Bool) {}

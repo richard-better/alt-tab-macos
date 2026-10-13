@@ -14,10 +14,10 @@ The workflow creates a temporary keychain on the macOS runner. It does not need 
 
 ## Build a candidate
 
-Choose a version greater than `CURRENT_PROJECT_VERSION` in `config/base.xcconfig` and every version already released. The first candidate for the current checkout is `11.9.2`.
+Choose a version at least as high as `CURRENT_PROJECT_VERSION` in `config/base.xcconfig` and greater than every version already released. The first candidate for the current checkout is `1.0.0`.
 
 ```sh
-gh workflow run release.yml --repo richard-better/switcheroo --ref richard-patches -f version=11.9.2 -f publish=false
+gh workflow run release.yml --repo richard-better/switcheroo --ref richard-patches -f version=1.0.0 -f publish=false
 ```
 
 Download the workflow artifact after the job succeeds. Install the extracted `Switcheroo.app` in `/Applications`, check browser-tab and window switching, and grant the requested macOS permissions. Verify an upgrade from the prior release before publishing subsequent versions.
@@ -25,7 +25,7 @@ Download the workflow artifact after the job succeeds. Install the extracted `Sw
 To run the scripts locally, install your Developer ID identity in the login Keychain and store notarization credentials with `xcrun notarytool store-credentials`. Run these commands from the repository root:
 
 ```sh
-export RELEASE_VERSION=11.9.2
+export RELEASE_VERSION=1.0.0
 export NOTARY_KEYCHAIN_PROFILE=switcheroo-notary
 scripts/build_app.sh
 scripts/package_and_notarize_release.sh
@@ -41,7 +41,7 @@ The scripts write the ZIP, notarization result, appcast, checksum, and Homebrew 
 Run the workflow with `publish=true` after verifying the candidate. Alternatively, push a `switcheroo-v<version>` tag to trigger publication. A workflow run with `publish=true` builds and notarizes the selected commit again.
 
 ```sh
-gh workflow run release.yml --repo richard-better/switcheroo --ref richard-patches -f version=11.9.2 -f publish=true
+gh workflow run release.yml --repo richard-better/switcheroo --ref richard-patches -f version=1.0.0 -f publish=true
 ```
 
 The release appears at `https://github.com/richard-better/switcheroo/releases`. Its `appcast.xml` asset supplies automatic updates. Publication does not change the development version in `config/base.xcconfig`.

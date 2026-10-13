@@ -9,6 +9,7 @@ import plistlib
 import tempfile
 import subprocess
 import unittest
+from unittest.mock import patch
 import xml.etree.ElementTree as ET
 
 import metadata
@@ -57,9 +58,11 @@ class ReleaseTests(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "published appcast"):
             metadata.generate(self.version, self.archive, self.signature, self.feed)
 
-    def test_rejects_development_version_and_untrusted_version_strings(self):
-        with self.assertRaisesRegex(ValueError, "development build"):
-            metadata.validate_version(metadata.setting("CURRENT_PROJECT_VERSION"))
+    def test_accepts_current_version_and_rejects_older_or_untrusted_versions(self):
+        metadata.validate_version(metadata.setting("CURRENT_PROJECT_VERSION"))
+        with patch.object(metadata, "setting", return_value="1.2.0"):
+            with self.assertRaisesRegex(ValueError, "development build"):
+                metadata.validate_version("1.1.9")
         for version in ["", "v12.0.0", "12.0", "12.0.0-beta", "012.0.0", "12.100.0", "12.0.0\n", "12.0.0; touch /tmp/injected"]:
             with self.subTest(version=version), self.assertRaises(ValueError):
                 metadata.validate_version(version)

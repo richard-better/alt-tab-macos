@@ -1,10 +1,8 @@
 # PreferencesMigrations — Specs
 
-> **Line coverage:** `PreferencesMigrations.swift` 49% — the per-migration transforms are covered; the `migratePreferences`/`updateToNewPreferences` orchestrator and `migrateLoginItem` are intentionally excluded (see "Not covered" below). _refreshed 2026-05-27 by `/coverage-explore`_
-
 ## Summary
 
-`PreferencesMigrations` upgrades a user's stored `UserDefaults` from an older AltTab version to the current schema. It runs once per launch (`migratePreferences()`), comparing the stored `preferencesVersion` to the app version and applying each registered migration whose version threshold the stored version is at or below. Most migrations are small, self-contained `UserDefaults` transforms (rename a key, remap an index, split one key into two, convert a Bool string to an enum index).
+`PreferencesMigrations` upgrades a user's stored `UserDefaults` from an older AltTab version to the current schema. It runs once per launch (`migratePreferences()`), comparing the stored `preferencesVersion` to `schemaVersion` and applying each registered migration whose version threshold the stored version is at or below. Most migrations are small, self-contained `UserDefaults` transforms (rename a key, remap an index, split one key into two, convert a Bool string to an enum index).
 
 **Why this is the highest-value safety net:** these run on every upgrade against real users' data. A mistake silently corrupts settings for the entire installed base — and there's no UI signal when it goes wrong. The tests pin each transform's exact input→output.
 
@@ -90,3 +88,9 @@ The fork imports its legacy browser-tab chord into the first new shortcut slot o
 ## Titles-only appearance
 
 `migrateToTitlesOnly()` runs at launch independently of version thresholds. It selects Titles at the existing stored index 2, removes all style overrides and remembered Pro styles, and disables window previews and background capture. Other shortcut settings remain intact. Running it again has the same result. `testTitlesOnlyMigrationRemovesLegacyStylesAndCapturesFromEveryShortcut` covers every slot and repeated execution.
+
+## Independent release versions
+
+Switcheroo starts at version `1.0.0`. Its preference schema remains `11.9.1`, matching the inherited AltTab schema. Release numbers do not control preference migrations. New installations record the schema version, and older schemas upgrade once. A stored schema newer than the current schema remains intact.
+
+`testLaunchPreservesNewerPreferenceSchemaAcrossRepeatedLaunches` covers the existing `11.9.2` installation. `testFreshInstallRecordsPreferenceSchemaInsteadOfAppVersion` covers new installations. `testLegacySchemaUpgradeRunsOnceAndPreservesLaterLanguageChanges` covers an older schema and subsequent launches.
