@@ -1,29 +1,22 @@
 # Switcheroo
 
-This is my personal fork of [AltTab](https://github.com/lwouis/alt-tab-macos), with a few features I needed, including Safari and Google Chrome tab switching and a different switcher layout.
+My personal fork of [AltTab](https://github.com/lwouis/alt-tab-macos). It adds Safari and Google Chrome tab switching and a different switcher layout. Everyone else should use the [original AltTab](https://alt-tab.app/).
 
-Everyone else should use the [original AltTab](https://alt-tab.app/). I keep this fork for my own use.
+Switcheroo uses its own bundle ID (`me.richardb.window-switcher`), so its settings, license, login item and URL scheme are separate from AltTab. AltTab settings and licenses are not imported.
 
-The app is named **Switcheroo** and uses the bundle ID `me.richardb.window-switcher`. Its preferences, license preferences, Keychain service, login item and URL scheme are separate from upstream AltTab. Existing AltTab settings and licenses are not imported.
+## Browser tabs
 
-- Press **Control-Option-Tab**, or choose **Browser tabs…** from Switcheroo's menu.
-- Type to search titles, URLs and browser names. Tab/Shift-Tab or the arrow keys select a result; Return activates it; Escape closes the panel. Use Switch between below Trigger to choose Windows or Browser tabs. Browser tab shortcuts can keep the panel open after releasing modifiers or switch immediately on release.
-- Change the shortcut under **Settings > Controls > Browser tabs shortcut > Trigger**. Each shortcut's **Search** toggle hides or shows search for that shortcut.
-- Allow browser Automation access when macOS asks. The panel includes an Automation settings button and an explicit Refresh button.
-- Tabs are collected when opening or refreshing the panel. No background polling or browser extension is required.
+- Press **Control-Option-Tab**, or choose **Browser tabs…** from the menu.
+- Type to search titles and URLs. Arrow keys or Tab/Shift-Tab select, Return switches, Escape closes.
+- Change the shortcut in **Settings > Controls > Browser tabs shortcut**.
+- Allow Automation access when macOS asks. Tabs are read when the panel opens, with no polling or browser extension.
 
-Chrome tabs are located by their native ID, even after moving between windows. Safari uses a window ID and position with title/URL validation; a changed tab requires refreshing. Browser data stays local. Safari's private-window and profile coverage depends on what its scripting interface exposes.
+Details are in [BrowserTabsSpecs.md](src/browser-tabs/BrowserTabsSpecs.md).
 
-Build with `ai/build.sh`. Debug builds use Richard's Apple Development team so macOS can recognize the app across rebuilds and retain permission grants. Other developers can override `DEVELOPMENT_TEAM` in `config/local.xcconfig`. Install `DerivedData/Build/Products/Debug/Switcheroo.app` in `/Applications` before granting permissions. Use `ai/test.sh` to run tests. Detailed behavior is in [BrowserTabsSpecs.md](src/browser-tabs/BrowserTabsSpecs.md).
+## Development
 
-The fork uses its own update feed, published with each GitHub release. [Release instructions](scripts/release/README.md) cover signing, notarization, automatic updates, and the Homebrew tap. The first release is [Switcheroo 1.0.0](https://github.com/richard-better/switcheroo/releases/tag/switcheroo-v1.0.0), based on AltTab `11.9.1`. The [changelog](changelog.md) records the included upstream version and commit for each release. Upstream AltTab updates cannot replace Switcheroo through its feed. The original license and upstream information follow.
+Build with `ai/build.sh` and test with `ai/test.sh`. To build with your own team, set `DEVELOPMENT_TEAM` in `config/local.xcconfig`. Install `DerivedData/Build/Products/Debug/Switcheroo.app` in `/Applications` before granting permissions.
 
----
+## Releases
 
-<div align="center">
-
-<a href="https://alt-tab.app/"><img src="docs/readme/main.svg" alt="AltTab Pro — 7.4M downloads — 15K GitHub stars — Get AltTab"/></a>
-
-<a href="https://jb.gg/OpenSource"><img src="docs/readme/sponsor.svg" alt="Sponsored by JetBrains" width="900"/></a>
-
-</div>
+Releases are published on [GitHub](https://github.com/richard-better/switcheroo/releases) with their own update feed. See the [release instructions](scripts/release/README.md) and the [changelog](changelog.md), which lists the upstream AltTab version in each release.
